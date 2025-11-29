@@ -28,9 +28,30 @@ public class CursoController {
     }
 
     @PutMapping("/{id}")
-    public Curso update(@PathVariable Integer id, @RequestBody Curso curso) {
-        curso.setId(id);
-        return cursoRepository.save(curso);
+    public Curso update(@PathVariable Integer id, @RequestBody Curso cursoActualizado) {
+        Curso cursoExistente = cursoRepository.findById(id).orElse(null);
+        if (cursoExistente == null) {
+            return null;
+        }
+
+        // Actualizar solo los campos que vienen en el request
+        if (cursoActualizado.getNombre() != null) {
+            cursoExistente.setNombre(cursoActualizado.getNombre());
+        }
+        if (cursoActualizado.getDescripcion() != null) {
+            cursoExistente.setDescripcion(cursoActualizado.getDescripcion());
+        }
+        if (cursoActualizado.getTipoCurso() != null) {
+            cursoExistente.setTipoCurso(cursoActualizado.getTipoCurso());
+        }
+        if (cursoActualizado.getDuracion() != null) {
+            cursoExistente.setDuracion(cursoActualizado.getDuracion());
+        }
+        if (cursoActualizado.getEstado() != null) {
+            cursoExistente.setEstado(cursoActualizado.getEstado());
+        }
+
+        return cursoRepository.save(cursoExistente);
     }
 
     @DeleteMapping("/{id}")

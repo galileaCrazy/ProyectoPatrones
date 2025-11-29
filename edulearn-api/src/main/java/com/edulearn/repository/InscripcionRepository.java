@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface InscripcionRepository extends JpaRepository<Inscripcion, Integer> {
     List<Inscripcion> findByEstudianteId(Integer estudianteId);
+    List<Inscripcion> findByCursoId(Integer cursoId);
 }
