@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle2, XCircle, Loader2, Send, Settings, Bell, BookOpen } from "lucide-react"
+import { CheckCircle2, XCircle, Loader2, Send, Settings, Bell, BookOpen, Layers } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
@@ -34,6 +34,12 @@ export default function PatronesPage() {
   const [nivelContenido, setNivelContenido] = useState("BASICO")
   const [tipoContenido, setTipoContenido] = useState("VIDEO")
   const [cursoId, setCursoId] = useState("1")
+
+  // Builder State
+  const [cursos, setCursos] = useState<any[]>([])
+  const [tipoCurso, setTipoCurso] = useState("BASICO")
+  const [nombreCurso, setNombreCurso] = useState("")
+  const [categoriaCurso, setCategoriaCurso] = useState("PROGRAMACION")
 
   // ========== SINGLETON ==========
   const cargarConfiguraciones = async () => {
@@ -270,6 +276,106 @@ export default function PatronesPage() {
     }
   }
 
+  // ========== BUILDER ==========
+  const cargarCursos = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/cursos-builder`)
+      const data = await response.json()
+      setCursos(data)
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const crearCursoConDirector = async () => {
+    if (!nombreCurso) {
+      setError("El nombre del curso es obligatorio")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      let endpoint = ""
+      let body: any = { nombre: nombreCurso }
+
+      switch (tipoCurso) {
+        case "BASICO":
+          endpoint = "/cursos-builder/basico"
+          break
+        case "PREMIUM":
+          endpoint = "/cursos-builder/premium"
+          body.categoria = categoriaCurso
+          break
+        case "VIRTUAL":
+          endpoint = "/cursos-builder/virtual"
+          body.duracion = 40
+          break
+        case "INTENSIVO":
+          endpoint = "/cursos-builder/intensivo"
+          body.fechaInicio = new Date().toISOString().split('T')[0]
+          break
+        case "GRATUITO":
+          endpoint = "/cursos-builder/gratuito"
+          body.categoria = categoriaCurso
+          break
+        case "CORPORATIVO":
+          endpoint = "/cursos-builder/corporativo"
+          body.duracion = 60
+          body.cupo = 25
+          body.fechaInicio = new Date().toISOString().split('T')[0]
+          break
+      }
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+      const data = await response.json()
+      setResult(data)
+      setNombreCurso("")
+      cargarCursos()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verDemoBuilder = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/cursos-builder/demo`)
+      const data = await response.json()
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verEstadisticasCursos = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/cursos-builder/estadisticas`)
+      const data = await response.json()
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
@@ -278,13 +384,13 @@ export default function PatronesPage() {
           Demostración interactiva de los 23 patrones de diseño implementados en EduLearn
         </p>
         <div className="flex gap-2 mt-4">
-          <Badge variant="default">3 Completados</Badge>
-          <Badge variant="secondary">20 Pendientes</Badge>
+          <Badge variant="default">4 Completados</Badge>
+          <Badge variant="secondary">19 Pendientes</Badge>
         </div>
       </div>
 
       <Tabs defaultValue="singleton" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="singleton">
             <Settings className="mr-2 h-4 w-4" />
             Singleton
@@ -296,6 +402,10 @@ export default function PatronesPage() {
           <TabsTrigger value="abstractfactory">
             <BookOpen className="mr-2 h-4 w-4" />
             Abstract Factory
+          </TabsTrigger>
+          <TabsTrigger value="builder">
+            <Layers className="mr-2 h-4 w-4" />
+            Builder
           </TabsTrigger>
         </TabsList>
 
@@ -614,6 +724,129 @@ export default function PatronesPage() {
                         <span className="text-xs text-muted-foreground">
                           Curso #{cont.cursoId}
                         </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== BUILDER TAB ========== */}
+        <TabsContent value="builder" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Patrón Builder
+              </CardTitle>
+              <CardDescription>
+                Construir cursos complejos paso a paso usando Builder + Director con diferentes configuraciones predefinidas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Botones de acción */}
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={cargarCursos} disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Cargar Cursos
+                </Button>
+                <Button onClick={verDemoBuilder} variant="outline" disabled={loading}>
+                  Ver Demo
+                </Button>
+                <Button onClick={verEstadisticasCursos} variant="outline" disabled={loading}>
+                  Ver Estadísticas
+                </Button>
+              </div>
+
+              {/* Formulario crear curso con Director */}
+              <div className="border rounded-lg p-4 space-y-4 bg-blue-50 dark:bg-blue-950">
+                <h3 className="font-semibold">Crear Curso con Director (Recetas Predefinidas)</h3>
+                <p className="text-sm text-muted-foreground">
+                  El Director encapsula diferentes formas de construir cursos con configuraciones predefinidas
+                </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="tipoCurso">Tipo de Curso (Director)</Label>
+                      <select
+                        id="tipoCurso"
+                        className="w-full border rounded-md p-2"
+                        value={tipoCurso}
+                        onChange={(e) => setTipoCurso(e.target.value)}
+                      >
+                        <option value="BASICO">BÁSICO - 20hrs, Gratis, Presencial</option>
+                        <option value="PREMIUM">PREMIUM - 80hrs, $299, Híbrido, Certificado</option>
+                        <option value="VIRTUAL">VIRTUAL - 40hrs, $99, 100 cupos</option>
+                        <option value="INTENSIVO">INTENSIVO - 40hrs, 2 semanas, Proyecto</option>
+                        <option value="GRATUITO">GRATUITO - 10hrs, Virtual, Sin certificado</option>
+                        <option value="CORPORATIVO">CORPORATIVO - Personalizado, $499</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="nombreCurso">Nombre del Curso</Label>
+                      <Input
+                        id="nombreCurso"
+                        value={nombreCurso}
+                        onChange={(e) => setNombreCurso(e.target.value)}
+                        placeholder="Ej: Programación Java Avanzada"
+                      />
+                    </div>
+                  </div>
+                  {(tipoCurso === "PREMIUM" || tipoCurso === "GRATUITO") && (
+                    <div>
+                      <Label htmlFor="categoriaCurso">Categoría</Label>
+                      <select
+                        id="categoriaCurso"
+                        className="w-full border rounded-md p-2"
+                        value={categoriaCurso}
+                        onChange={(e) => setCategoriaCurso(e.target.value)}
+                      >
+                        <option value="PROGRAMACION">Programación</option>
+                        <option value="DISENO">Diseño</option>
+                        <option value="MARKETING">Marketing</option>
+                        <option value="NEGOCIOS">Negocios</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <Button onClick={crearCursoConDirector} disabled={loading} className="w-full">
+                  <Layers className="mr-2 h-4 w-4" />
+                  Construir Curso con Director
+                </Button>
+              </div>
+
+              {/* Mostrar cursos */}
+              {cursos.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">Cursos Creados ({cursos.length})</h3>
+                  <div className="space-y-2">
+                    {cursos.slice(-6).reverse().map((curso) => (
+                      <div key={curso.id} className="flex items-center justify-between border-b pb-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex gap-2 items-center">
+                            <span className="font-semibold">{curso.nombre}</span>
+                            <Badge variant="outline">{curso.codigo}</Badge>
+                          </div>
+                          <div className="flex gap-2 text-xs">
+                            <Badge variant={
+                              curso.tipoConstruccion === "PREMIUM" ? "default" :
+                              curso.tipoConstruccion === "GRATUITO" ? "secondary" :
+                              "outline"
+                            }>
+                              {curso.tipoConstruccion}
+                            </Badge>
+                            <span>{curso.modalidad}</span>
+                            <span>{curso.duracionHoras}hrs</span>
+                            <span>${curso.precio}</span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {curso.incluyeCertificado && "📜"}
+                          {curso.incluyeVideoLectures && "🎥"}
+                          {curso.incluyeProyectoFinal && "🎯"}
+                        </div>
                       </div>
                     ))}
                   </div>
