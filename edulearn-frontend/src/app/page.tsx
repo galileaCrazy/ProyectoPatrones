@@ -12,28 +12,30 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const auth = localStorage.getItem('isAuthenticated')
-    const role = localStorage.getItem('userRole')
-    
-    if (auth === 'true') {
+    // Verificar si el usuario ya está autenticado
+    const usuario = localStorage.getItem('usuario')
+
+    if (usuario) {
+      const userData = JSON.parse(usuario)
       setIsAuthenticated(true)
-      setUserRole((role as any) || 'student')
+
+      // Mapear el tipo de usuario al formato del Dashboard
+      const roleMap: Record<string, 'student' | 'professor' | 'admin'> = {
+        'estudiante': 'student',
+        'profesor': 'professor',
+        'administrador': 'admin'
+      }
+      setUserRole(roleMap[userData.tipoUsuario] || 'student')
     }
     setLoading(false)
   }, [])
 
-  const handleLogin = (role: 'student' | 'professor' | 'admin') => {
-    localStorage.setItem('isAuthenticated', 'true')
-    localStorage.setItem('userRole', role)
-    setIsAuthenticated(true)
-    setUserRole(role)
-  }
-
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated')
-    localStorage.removeItem('userRole')
+    localStorage.removeItem('usuario')
+    localStorage.removeItem('permisos')
+    localStorage.removeItem('menu')
     setIsAuthenticated(false)
+    router.push('/')
   }
 
   if (loading) {
@@ -50,6 +52,6 @@ export default function Home() {
   return isAuthenticated ? (
     <Dashboard role={userRole} onLogout={handleLogout} />
   ) : (
-    <LoginPage onLogin={handleLogin} />
+    <LoginPage />
   )
 }

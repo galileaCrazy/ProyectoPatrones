@@ -23,6 +23,9 @@ public class RegistroController {
     @Autowired
     private EstudianteRepository estudianteRepository;
 
+    private org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder passwordEncoder =
+        new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, String> datos) {
         Map<String, Object> response = new HashMap<>();
@@ -73,7 +76,8 @@ public class RegistroController {
             nuevoUsuario.setNombre(nombre);
             nuevoUsuario.setApellidos(apellidos);
             nuevoUsuario.setEmail(email);
-            nuevoUsuario.setPasswordHash(password); // En producción, usar BCrypt
+            // Encriptar contraseña con BCrypt
+            nuevoUsuario.setPasswordHash(passwordEncoder.encode(password));
             nuevoUsuario.setTipoUsuario(tipoUsuario.toLowerCase());
 
             // Guardar usuario
@@ -86,7 +90,7 @@ public class RegistroController {
                 estudiante.setNombre(nombre);
                 estudiante.setApellidos(apellidos);
                 estudiante.setEmail(email);
-                estudiante.setPasswordHash(password);
+                estudiante.setPasswordHash(usuarioGuardado.getPasswordHash()); // Usar la contraseña encriptada
 
                 // Generar código único
                 String codigo = generarCodigoEstudiante();

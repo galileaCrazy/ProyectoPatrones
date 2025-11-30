@@ -1,22 +1,48 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-interface LoginPageProps {
-  onLogin: (role: 'student' | 'professor' | 'admin') => void
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 
-export default function LoginPage({ onLogin }: LoginPageProps) {
+export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [selectedRole, setSelectedRole] = useState<'student' | 'professor' | 'admin'>('student')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (email && password) {
-      onLogin(selectedRole)
+    setLoading(true)
+    setError('')
+
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+
+      const data = await res.json()
+
+      if (data.error) {
+        setError(data.error)
+      } else {
+        // Guardar datos del usuario en localStorage
+        localStorage.setItem('usuario', JSON.stringify(data.usuario))
+        localStorage.setItem('permisos', JSON.stringify(data.permisos))
+        localStorage.setItem('menu', JSON.stringify(data.menu))
+
+        // Redirigir al dashboard correspondiente
+        router.push(data.dashboard)
+      }
+    } catch (err) {
+      setError('Error de conexión con el servidor')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -70,45 +96,27 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               />
             </div>
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-foreground block">Tipo de Usuario</label>
-              <div className="space-y-2">
-                {(['student', 'professor', 'admin'] as const).map((role) => (
-                  <label key={role} className="flex items-center gap-3 p-3 rounded-lg border border-input cursor-pointer hover:bg-muted transition-colors"
-                    style={{
-                      backgroundColor: selectedRole === role ? 'var(--color-muted)' : 'transparent',
-                      borderColor: selectedRole === role ? 'var(--color-primary)' : 'var(--color-border)'
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="role"
-                      value={role}
-                      checked={selectedRole === role}
-                      onChange={(e) => setSelectedRole(e.target.value as any)}
-                      className="w-4 h-4"
-                    />
-                    <span className="font-medium capitalize">
-                      {role === 'student' && 'Estudiante'}
-                      {role === 'professor' && 'Profesor'}
-                      {role === 'admin' && 'Administrador'}
-                    </span>
-                  </label>
-                ))}
+            {error && (
+              <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg text-sm">
+                {error}
               </div>
-            </div>
+            )}
 
             <Button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 rounded-lg transition-colors"
+              disabled={loading}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Iniciar Sesión
+              {loading ? 'Ingresando...' : 'Iniciar Sesión'}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Credenciales de demostración: cualquier email/contraseña
+              ¿No tienes una cuenta?{' '}
+              <a href="/registro" className="text-primary font-semibold hover:underline">
+                Regístrate aquí
+              </a>
             </p>
           </div>
         </CardContent>
