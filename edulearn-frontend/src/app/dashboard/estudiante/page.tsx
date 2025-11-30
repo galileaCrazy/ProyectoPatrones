@@ -13,7 +13,7 @@ export default function EstudianteDashboard() {
     const usuario = localStorage.getItem('usuario')
     
     if (!usuario) {
-      router.push('/login')
+      router.push('/')
       return
     }
 
@@ -30,7 +30,7 @@ export default function EstudianteDashboard() {
       setIsAuthenticated(true)
     } catch (error) {
       console.error('Error al verificar usuario:', error)
-      router.push('/login')
+      router.push('/')
     } finally {
       setLoading(false)
     }
@@ -39,8 +39,10 @@ export default function EstudianteDashboard() {
   const handleLogout = () => {
     localStorage.removeItem('usuario')
     localStorage.removeItem('isAuthenticated')
+    localStorage.removeItem('permisos')
+    localStorage.removeItem('menu')
     setIsAuthenticated(false)
-    router.push('/login')
+    router.push('/')
   }
 
   if (loading) {

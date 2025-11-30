@@ -24,14 +24,16 @@ export default function DashboardPage() {
       }
       setUserRole(roleMap[user.tipoUsuario as string] || 'student')
     } else {
-      router.push('/login')
+      router.push('/')
     }
   }, [router])
 
   const handleLogout = () => {
     localStorage.removeItem('usuario')
+    localStorage.removeItem('permisos')
+    localStorage.removeItem('menu')
     setIsAuthenticated(false)
-    router.push('/login')
+    router.push('/')
   }
 
   if (!isAuthenticated) {
