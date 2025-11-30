@@ -1,39 +1,55 @@
-'use client';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import LoginPage from '@/components/auth/login-page'
+import Dashboard from '@/components/dashboard/dashboard'
 
 export default function Home() {
-  const router = useRouter();
+  const router = useRouter()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [userRole, setUserRole] = useState<'student' | 'professor' | 'admin'>('student')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Verificar si hay sesión activa
-    const usuario = localStorage.getItem('usuario');
-    if (usuario) {
-      const user = JSON.parse(usuario);
-      switch (user.tipoUsuario) {
-        case 'estudiante':
-          router.push('/dashboard/estudiante');
-          break;
-        case 'profesor':
-          router.push('/dashboard/profesor');
-          break;
-        case 'administrador':
-          router.push('/dashboard/admin');
-          break;
-        default:
-          router.push('/login');
-      }
-    } else {
-      router.push('/login');
+    // Check if user is already authenticated
+    const auth = localStorage.getItem('isAuthenticated')
+    const role = localStorage.getItem('userRole')
+    
+    if (auth === 'true') {
+      setIsAuthenticated(true)
+      setUserRole((role as any) || 'student')
     }
-  }, [router]);
+    setLoading(false)
+  }, [])
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">EduLearn</h1>
-        <p className="text-gray-600">Cargando...</p>
+  const handleLogin = (role: 'student' | 'professor' | 'admin') => {
+    localStorage.setItem('isAuthenticated', 'true')
+    localStorage.setItem('userRole', role)
+    setIsAuthenticated(true)
+    setUserRole(role)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated')
+    localStorage.removeItem('userRole')
+    setIsAuthenticated(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="mt-4 text-foreground">Cargando...</p>
+        </div>
       </div>
-    </div>
-  );
+    )
+  }
+
+  return isAuthenticated ? (
+    <Dashboard role={userRole} onLogout={handleLogout} />
+  ) : (
+    <LoginPage onLogin={handleLogin} />
+  )
 }
