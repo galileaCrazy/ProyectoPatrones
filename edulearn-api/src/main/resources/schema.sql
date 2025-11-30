@@ -32,6 +32,24 @@ CREATE TABLE IF NOT EXISTS notificaciones_patron (
     INDEX idx_destinatario (destinatario)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ========== PATRÓN ABSTRACT FACTORY ==========
+-- Tabla para contenidos educativos (VIDEO, DOCUMENTO, QUIZ) x (BASICO, INTERMEDIO, AVANZADO)
+CREATE TABLE IF NOT EXISTS contenidos_educativos (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tipo VARCHAR(50) NOT NULL,
+    nivel VARCHAR(50) NOT NULL,
+    descripcion TEXT,
+    duracion_estimada INT,
+    contenido_renderizado TEXT,
+    fecha_creacion DATETIME,
+    curso_id BIGINT,
+    activo BOOLEAN DEFAULT TRUE,
+    INDEX idx_tipo (tipo),
+    INDEX idx_nivel (nivel),
+    INDEX idx_tipo_nivel (tipo, nivel),
+    INDEX idx_curso_id (curso_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ==================================================================
 -- Insertar configuraciones por defecto
 -- ==================================================================

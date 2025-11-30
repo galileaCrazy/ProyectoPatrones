@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle2, XCircle, Loader2, Send, Settings, Bell } from "lucide-react"
+import { CheckCircle2, XCircle, Loader2, Send, Settings, Bell, BookOpen } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
@@ -28,6 +28,12 @@ export default function PatronesPage() {
   const [destinatario, setDestinatario] = useState("")
   const [asunto, setAsunto] = useState("")
   const [mensaje, setMensaje] = useState("")
+
+  // Abstract Factory State
+  const [contenidos, setContenidos] = useState<any[]>([])
+  const [nivelContenido, setNivelContenido] = useState("BASICO")
+  const [tipoContenido, setTipoContenido] = useState("VIDEO")
+  const [cursoId, setCursoId] = useState("1")
 
   // ========== SINGLETON ==========
   const cargarConfiguraciones = async () => {
@@ -175,6 +181,95 @@ export default function PatronesPage() {
     }
   }
 
+  // ========== ABSTRACT FACTORY ==========
+  const cargarContenidos = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/contenidos`)
+      const data = await response.json()
+      setContenidos(data)
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const crearContenido = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/contenidos/crear`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nivel: nivelContenido,
+          tipo: tipoContenido,
+          cursoId: parseInt(cursoId)
+        })
+      })
+      const data = await response.json()
+      setResult(data)
+      cargarContenidos()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const crearFamiliaCompleta = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/contenidos/crear-familia`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nivel: nivelContenido,
+          cursoId: parseInt(cursoId)
+        })
+      })
+      const data = await response.json()
+      setResult(data)
+      cargarContenidos()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verDemoAbstractFactory = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/contenidos/demo`)
+      const data = await response.json()
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verEstadisticasContenidos = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/contenidos/estadisticas`)
+      const data = await response.json()
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
@@ -183,13 +278,13 @@ export default function PatronesPage() {
           Demostración interactiva de los 23 patrones de diseño implementados en EduLearn
         </p>
         <div className="flex gap-2 mt-4">
-          <Badge variant="default">2 Completados</Badge>
-          <Badge variant="secondary">21 Pendientes</Badge>
+          <Badge variant="default">3 Completados</Badge>
+          <Badge variant="secondary">20 Pendientes</Badge>
         </div>
       </div>
 
       <Tabs defaultValue="singleton" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="singleton">
             <Settings className="mr-2 h-4 w-4" />
             Singleton
@@ -197,6 +292,10 @@ export default function PatronesPage() {
           <TabsTrigger value="factory">
             <Bell className="mr-2 h-4 w-4" />
             Factory Method
+          </TabsTrigger>
+          <TabsTrigger value="abstractfactory">
+            <BookOpen className="mr-2 h-4 w-4" />
+            Abstract Factory
           </TabsTrigger>
         </TabsList>
 
@@ -371,6 +470,149 @@ export default function PatronesPage() {
                         </div>
                         <span className="text-xs text-muted-foreground">
                           {notif.estado}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== ABSTRACT FACTORY TAB ========== */}
+        <TabsContent value="abstractfactory" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Patrón Abstract Factory
+              </CardTitle>
+              <CardDescription>
+                Crea familias de contenidos educativos (Video, Documento, Quiz) para diferentes niveles (Básico, Intermedio, Avanzado)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Botones de acción */}
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={cargarContenidos} disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Cargar Contenidos
+                </Button>
+                <Button onClick={verDemoAbstractFactory} variant="outline" disabled={loading}>
+                  Ver Demo
+                </Button>
+                <Button onClick={verEstadisticasContenidos} variant="outline" disabled={loading}>
+                  Ver Estadísticas
+                </Button>
+              </div>
+
+              {/* Formulario crear contenido individual */}
+              <div className="border rounded-lg p-4 space-y-4">
+                <h3 className="font-semibold">Crear Contenido Individual</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="nivel">Nivel</Label>
+                      <select
+                        id="nivel"
+                        className="w-full border rounded-md p-2"
+                        value={nivelContenido}
+                        onChange={(e) => setNivelContenido(e.target.value)}
+                      >
+                        <option value="BASICO">BÁSICO</option>
+                        <option value="INTERMEDIO">INTERMEDIO</option>
+                        <option value="AVANZADO">AVANZADO</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="tipoContenido">Tipo</Label>
+                      <select
+                        id="tipoContenido"
+                        className="w-full border rounded-md p-2"
+                        value={tipoContenido}
+                        onChange={(e) => setTipoContenido(e.target.value)}
+                      >
+                        <option value="VIDEO">VIDEO</option>
+                        <option value="DOCUMENTO">DOCUMENTO</option>
+                        <option value="QUIZ">QUIZ</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="cursoId">Curso ID</Label>
+                      <Input
+                        id="cursoId"
+                        type="number"
+                        value={cursoId}
+                        onChange={(e) => setCursoId(e.target.value)}
+                        placeholder="1"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <Button onClick={crearContenido} disabled={loading}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Crear Contenido
+                </Button>
+              </div>
+
+              {/* Formulario crear familia completa */}
+              <div className="border rounded-lg p-4 space-y-4 bg-blue-50 dark:bg-blue-950">
+                <h3 className="font-semibold">Crear Familia Completa (Video + Documento + Quiz)</h3>
+                <p className="text-sm text-muted-foreground">
+                  Crea los 3 tipos de contenido para un nivel específico en una sola operación
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="nivelFamilia">Nivel</Label>
+                    <select
+                      id="nivelFamilia"
+                      className="w-full border rounded-md p-2"
+                      value={nivelContenido}
+                      onChange={(e) => setNivelContenido(e.target.value)}
+                    >
+                      <option value="BASICO">BÁSICO</option>
+                      <option value="INTERMEDIO">INTERMEDIO</option>
+                      <option value="AVANZADO">AVANZADO</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="cursoIdFamilia">Curso ID</Label>
+                    <Input
+                      id="cursoIdFamilia"
+                      type="number"
+                      value={cursoId}
+                      onChange={(e) => setCursoId(e.target.value)}
+                      placeholder="1"
+                    />
+                  </div>
+                </div>
+                <Button onClick={crearFamiliaCompleta} disabled={loading} className="w-full">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Crear Familia Completa
+                </Button>
+              </div>
+
+              {/* Mostrar contenidos */}
+              {contenidos.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">Contenidos Creados ({contenidos.length})</h3>
+                  <div className="space-y-2">
+                    {contenidos.slice(-6).reverse().map((cont) => (
+                      <div key={cont.id} className="flex items-center justify-between border-b pb-2">
+                        <div className="flex gap-2">
+                          <Badge variant={
+                            cont.nivel === "BASICO" ? "secondary" :
+                            cont.nivel === "INTERMEDIO" ? "default" :
+                            "destructive"
+                          }>
+                            {cont.nivel}
+                          </Badge>
+                          <Badge variant="outline">{cont.tipo}</Badge>
+                          <span className="text-sm">{cont.duracionEstimada} min</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          Curso #{cont.cursoId}
                         </span>
                       </div>
                     ))}
