@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle2, XCircle, Loader2, Send, Settings, Bell, BookOpen } from "lucide-react"
+import { CheckCircle2, XCircle, Loader2, Send, Settings, Bell, BookOpen, Layers } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
@@ -34,6 +34,13 @@ export default function PatronesPage() {
   const [nivelContenido, setNivelContenido] = useState("BASICO")
   const [tipoContenido, setTipoContenido] = useState("VIDEO")
   const [cursoId, setCursoId] = useState("1")
+
+  // Builder State
+  const [cursos, setCursos] = useState<any[]>([])
+  const [tipoCurso, setTipoCurso] = useState("REGULAR")
+  const [nombreCurso, setNombreCurso] = useState("")
+  const [periodoAcademico, setPeriodoAcademico] = useState("2025-1")
+  const [profesorId, setProfesorId] = useState("1")
 
   // ========== SINGLETON ==========
   const cargarConfiguraciones = async () => {
@@ -270,6 +277,66 @@ export default function PatronesPage() {
     }
   }
 
+  // ========== BUILDER ==========
+  const cargarCursos = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/cursos`)
+      const data = await response.json()
+      setCursos(data)
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const crearCursoConDirector = async () => {
+    if (!nombreCurso) {
+      setError("El nombre del curso es obligatorio")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      let endpoint = ""
+      let body: any = { nombre: nombreCurso }
+
+      switch (tipoCurso) {
+        case "REGULAR":
+          endpoint = "/cursos/builder/regular"
+          body.periodoAcademico = periodoAcademico
+          break
+        case "INTENSIVO":
+          endpoint = "/cursos/builder/intensivo"
+          body.profesorId = parseInt(profesorId)
+          break
+        case "CERTIFICACION":
+          endpoint = "/cursos/builder/certificacion"
+          body.profesorId = parseInt(profesorId)
+          body.periodoAcademico = periodoAcademico
+          break
+      }
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+      const data = await response.json()
+      setResult(data)
+      setNombreCurso("")
+      cargarCursos()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
@@ -278,13 +345,13 @@ export default function PatronesPage() {
           Demostración interactiva de los 23 patrones de diseño implementados en EduLearn
         </p>
         <div className="flex gap-2 mt-4">
-          <Badge variant="default">3 Completados</Badge>
-          <Badge variant="secondary">20 Pendientes</Badge>
+          <Badge variant="default">4 Completados</Badge>
+          <Badge variant="secondary">19 Pendientes</Badge>
         </div>
       </div>
 
       <Tabs defaultValue="singleton" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="singleton">
             <Settings className="mr-2 h-4 w-4" />
             Singleton
@@ -296,6 +363,10 @@ export default function PatronesPage() {
           <TabsTrigger value="abstractfactory">
             <BookOpen className="mr-2 h-4 w-4" />
             Abstract Factory
+          </TabsTrigger>
+          <TabsTrigger value="builder">
+            <Layers className="mr-2 h-4 w-4" />
+            Builder
           </TabsTrigger>
         </TabsList>
 
@@ -614,6 +685,141 @@ export default function PatronesPage() {
                         <span className="text-xs text-muted-foreground">
                           Curso #{cont.cursoId}
                         </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== BUILDER TAB ========== */}
+        <TabsContent value="builder" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Patrón Builder
+              </CardTitle>
+              <CardDescription>
+                Construir cursos complejos paso a paso usando Builder + Director con diferentes configuraciones predefinidas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Botones de acción */}
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={cargarCursos} disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Cargar Cursos
+                </Button>
+              </div>
+
+              {/* Formulario crear curso con Director */}
+              <div className="border rounded-lg p-4 space-y-4 bg-blue-50 dark:bg-blue-950">
+                <h3 className="font-semibold">Crear Curso con Director (Recetas Predefinidas)</h3>
+                <p className="text-sm text-muted-foreground">
+                  El Director encapsula diferentes formas de construir cursos con configuraciones predefinidas
+                </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="tipoCurso">Tipo de Curso (Director)</Label>
+                      <select
+                        id="tipoCurso"
+                        className="w-full border rounded-md p-2"
+                        value={tipoCurso}
+                        onChange={(e) => setTipoCurso(e.target.value)}
+                      >
+                        <option value="REGULAR">REGULAR - 40hrs, Estado ACTIVO</option>
+                        <option value="INTENSIVO">INTENSIVO - 80hrs, Mayor carga horaria</option>
+                        <option value="CERTIFICACION">CERTIFICACIÓN - 60hrs, Certificación profesional</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="nombreCurso">Nombre del Curso</Label>
+                      <Input
+                        id="nombreCurso"
+                        value={nombreCurso}
+                        onChange={(e) => setNombreCurso(e.target.value)}
+                        placeholder="Ej: Programación Java Avanzada"
+                      />
+                    </div>
+                  </div>
+                  {tipoCurso === "REGULAR" && (
+                    <div>
+                      <Label htmlFor="periodoAcademico">Período Académico</Label>
+                      <Input
+                        id="periodoAcademico"
+                        value={periodoAcademico}
+                        onChange={(e) => setPeriodoAcademico(e.target.value)}
+                        placeholder="Ej: 2025-1"
+                      />
+                    </div>
+                  )}
+                  {(tipoCurso === "INTENSIVO" || tipoCurso === "CERTIFICACION") && (
+                    <div>
+                      <Label htmlFor="profesorId">ID del Profesor Titular</Label>
+                      <Input
+                        id="profesorId"
+                        type="number"
+                        value={profesorId}
+                        onChange={(e) => setProfesorId(e.target.value)}
+                        placeholder="Ej: 1"
+                      />
+                    </div>
+                  )}
+                  {tipoCurso === "CERTIFICACION" && (
+                    <div>
+                      <Label htmlFor="periodoAcademico">Período Académico</Label>
+                      <Input
+                        id="periodoAcademico"
+                        value={periodoAcademico}
+                        onChange={(e) => setPeriodoAcademico(e.target.value)}
+                        placeholder="Ej: 2025-1"
+                      />
+                    </div>
+                  )}
+                </div>
+                <Button onClick={crearCursoConDirector} disabled={loading} className="w-full">
+                  <Layers className="mr-2 h-4 w-4" />
+                  Construir Curso con Director
+                </Button>
+              </div>
+
+              {/* Mostrar cursos */}
+              {cursos.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">Cursos Creados ({cursos.length})</h3>
+                  <div className="space-y-2">
+                    {cursos.slice(-6).reverse().map((curso) => (
+                      <div key={curso.id} className="flex items-center justify-between border-b pb-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex gap-2 items-center">
+                            <span className="font-semibold">{curso.nombre}</span>
+                            {curso.codigo && <Badge variant="outline">{curso.codigo}</Badge>}
+                          </div>
+                          <div className="flex gap-2 text-xs">
+                            <Badge variant={
+                              curso.tipoCurso === "INTENSIVO" ? "default" :
+                              curso.tipoCurso === "CERTIFICACION" ? "secondary" :
+                              "outline"
+                            }>
+                              {curso.tipoCurso}
+                            </Badge>
+                            <span>{curso.duracion}hrs</span>
+                            {curso.periodoAcademico && <span>{curso.periodoAcademico}</span>}
+                            {curso.profesorTitularId && <span>Prof: {curso.profesorTitularId}</span>}
+                          </div>
+                          {curso.descripcion && (
+                            <p className="text-xs text-muted-foreground">{curso.descripcion}</p>
+                          )}
+                        </div>
+                        <div className="text-xs">
+                          <Badge variant={curso.estado === "ACTIVO" ? "default" : "secondary"}>
+                            {curso.estado}
+                          </Badge>
+                        </div>
                       </div>
                     ))}
                   </div>
