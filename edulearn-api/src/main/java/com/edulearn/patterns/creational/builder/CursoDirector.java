@@ -1,151 +1,81 @@
 package com.edulearn.patterns.creational.builder;
 
-import java.time.LocalDate;
+import com.edulearn.model.Curso;
 
 /**
  * DIRECTOR (parte opcional del patrón Builder)
  * =============================================
- * Propósito: Encapsular las diferentes formas de construir objetos complejos.
- * Define secuencias de construcción predefinidas (recetas).
+ * Propósito: Encapsular las diferentes formas de construir cursos.
+ * Define secuencias de construcción predefinidas (recetas) para el sistema real.
  *
  * Ventajas:
  * - Separa la lógica de construcción del código cliente
- * - Proporciona recetas predefinidas para casos comunes
- * - Facilita la creación de objetos complejos sin conocer los detalles
+ * - Proporciona recetas predefinidas para casos comunes del sistema
+ * - Facilita la creación de cursos sin conocer los detalles
  */
 public class CursoDirector {
 
     /**
-     * Construye un curso básico con configuración mínima
+     * Construye un curso regular estándar
      */
-    public CursoBuilderProduct construirCursoBasico(String nombre) {
+    public Curso construirCursoRegular(String nombre, String periodoAcademico) {
         return new CursoBuilder()
             .setNombre(nombre)
-            .setModalidad("PRESENCIAL")
-            .setNivelDificultad("BASICO")
-            .setDuracionHoras(20)
-            .setCupoMaximo(30)
-            .setPrecio(0.0)
-            .setIncluyeCertificado(false)
-            .setIncluyeEvaluaciones(true)
-            .setEstado("PUBLICADO")
+            .setTipoCurso("REGULAR")
+            .setPeriodoAcademico(periodoAcademico)
+            .setDuracion(40)
+            .setEstado("ACTIVO")
             .build();
     }
 
     /**
-     * Construye un curso premium con todas las características
+     * Construye un curso intensivo
      */
-    public CursoBuilderProduct construirCursoPremium(String nombre, String categoria) {
+    public Curso construirCursoIntensivo(String nombre, Integer profesorId) {
         return new CursoBuilder()
             .setNombre(nombre)
-            .setCategoria(categoria)
-            .setModalidad("HIBRIDO")
-            .setNivelDificultad("AVANZADO")
-            .setDuracionHoras(80)
-            .setCupoMaximo(20)
-            .setPrecio(299.99)
-            .setIncluyeCertificado(true)
-            .setIncluyeVideoLectures(true)
-            .setIncluyeEvaluaciones(true)
-            .setIncluyeProyectoFinal(true)
-            .setRequisitosPrevios("Conocimientos previos de programación")
-            .setObjetivos("Dominar conceptos avanzados y aplicarlos en proyectos reales")
-            .setEstado("PUBLICADO")
+            .setTipoCurso("INTENSIVO")
+            .setDuracion(80)
+            .setProfesorTitularId(profesorId)
+            .setEstado("ACTIVO")
+            .setDescripcion("Curso intensivo con mayor carga horaria")
             .build();
     }
 
     /**
-     * Construye un curso virtual estándar
+     * Construye un curso de certificación
      */
-    public CursoBuilderProduct construirCursoVirtual(String nombre, Integer duracion) {
+    public Curso construirCursoCertificacion(String nombre, Integer profesorId, String periodoAcademico) {
         return new CursoBuilder()
             .setNombre(nombre)
-            .setModalidad("VIRTUAL")
-            .setNivelDificultad("INTERMEDIO")
-            .setDuracionHoras(duracion)
-            .setCupoMaximo(100)
-            .setPrecio(99.99)
-            .setIncluyeCertificado(true)
-            .setIncluyeVideoLectures(true)
-            .setIncluyeEvaluaciones(true)
-            .setIncluyeProyectoFinal(false)
-            .setEstado("PUBLICADO")
+            .setTipoCurso("CERTIFICACION")
+            .setDuracion(60)
+            .setProfesorTitularId(profesorId)
+            .setPeriodoAcademico(periodoAcademico)
+            .setEstado("ACTIVO")
+            .setDescripcion("Curso de certificación profesional")
             .build();
     }
 
     /**
-     * Construye un curso intensivo presencial
+     * Construye un curso completo con todos los parámetros
      */
-    public CursoBuilderProduct construirCursoIntensivo(String nombre, LocalDate fechaInicio) {
-        LocalDate fechaFin = fechaInicio.plusWeeks(2);
-
-        return new CursoBuilder()
-            .setNombre(nombre)
-            .setModalidad("PRESENCIAL")
-            .setNivelDificultad("INTERMEDIO")
-            .setDuracionHoras(40)
-            .setCupoMaximo(15)
-            .setPrecio(199.99)
-            .setFechaInicio(fechaInicio)
-            .setFechaFin(fechaFin)
-            .setIncluyeCertificado(true)
-            .setIncluyeEvaluaciones(true)
-            .setIncluyeProyectoFinal(true)
-            .setDescripcion("Curso intensivo de 2 semanas con práctica intensiva")
-            .setEstado("PUBLICADO")
-            .build();
-    }
-
-    /**
-     * Construye un curso gratuito de introducción
-     */
-    public CursoBuilderProduct construirCursoGratuito(String nombre, String categoria) {
-        return new CursoBuilder()
-            .setNombre(nombre)
-            .setCategoria(categoria)
-            .setModalidad("VIRTUAL")
-            .setNivelDificultad("BASICO")
-            .setDuracionHoras(10)
-            .setCupoMaximo(200)
-            .setPrecio(0.0)
-            .setIncluyeCertificado(false)
-            .setIncluyeVideoLectures(true)
-            .setIncluyeEvaluaciones(false)
-            .setIncluyeProyectoFinal(false)
-            .setDescripcion("Curso introductorio gratuito para principiantes")
-            .setEstado("PUBLICADO")
-            .build();
-    }
-
-    /**
-     * Construye un curso corporativo personalizado
-     */
-    public CursoBuilderProduct construirCursoCorporativo(
+    public Curso construirCursoCompleto(
         String nombre,
-        Integer duracion,
-        Integer cupo,
-        LocalDate fechaInicio
+        String descripcion,
+        String tipoCurso,
+        Integer profesorId,
+        String periodoAcademico,
+        Integer duracion
     ) {
-        LocalDate fechaFin = fechaInicio.plusMonths(1);
-
         return new CursoBuilder()
             .setNombre(nombre)
-            .setCategoria("CORPORATIVO")
-            .setModalidad("HIBRIDO")
-            .setNivelDificultad("INTERMEDIO")
-            .setDuracionHoras(duracion)
-            .setCupoMaximo(cupo)
-            .setPrecio(499.99)
-            .setFechaInicio(fechaInicio)
-            .setFechaFin(fechaFin)
-            .setIncluyeCertificado(true)
-            .setIncluyeVideoLectures(true)
-            .setIncluyeEvaluaciones(true)
-            .setIncluyeProyectoFinal(true)
-            .setDescripcion("Curso personalizado para empresas con seguimiento dedicado")
-            .setRequisitosPrevios("Determinado por la empresa")
-            .setObjetivos("Upskilling del equipo en tecnologías específicas")
-            .setEstado("BORRADOR")
+            .setDescripcion(descripcion)
+            .setTipoCurso(tipoCurso)
+            .setProfesorTitularId(profesorId)
+            .setPeriodoAcademico(periodoAcademico)
+            .setDuracion(duracion)
+            .setEstado("ACTIVO")
             .build();
     }
 }

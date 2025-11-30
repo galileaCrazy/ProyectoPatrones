@@ -1,10 +1,13 @@
 package com.edulearn.controller;
 
 import com.edulearn.model.Curso;
+import com.edulearn.patterns.creational.builder.CursoBuilder;
+import com.edulearn.patterns.creational.builder.CursoDirector;
 import com.edulearn.repository.CursoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cursos")
@@ -57,5 +60,87 @@ public class CursoController {
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
         cursoRepository.deleteById(id);
+    }
+
+    // ========== ENDPOINTS CON PATRÓN BUILDER ==========
+
+    /**
+     * POST /api/cursos/builder
+     * Crear curso usando patrón Builder (construcción paso a paso)
+     */
+    @PostMapping("/builder")
+    public Curso crearConBuilder(@RequestBody Map<String, Object> params) {
+        CursoBuilder builder = new CursoBuilder();
+
+        if (params.containsKey("nombre")) {
+            builder.setNombre((String) params.get("nombre"));
+        }
+        if (params.containsKey("codigo")) {
+            builder.setCodigo((String) params.get("codigo"));
+        }
+        if (params.containsKey("descripcion")) {
+            builder.setDescripcion((String) params.get("descripcion"));
+        }
+        if (params.containsKey("tipoCurso")) {
+            builder.setTipoCurso((String) params.get("tipoCurso"));
+        }
+        if (params.containsKey("duracion")) {
+            builder.setDuracion((Integer) params.get("duracion"));
+        }
+        if (params.containsKey("profesorTitularId")) {
+            builder.setProfesorTitularId((Integer) params.get("profesorTitularId"));
+        }
+        if (params.containsKey("periodoAcademico")) {
+            builder.setPeriodoAcademico((String) params.get("periodoAcademico"));
+        }
+        if (params.containsKey("estado")) {
+            builder.setEstado((String) params.get("estado"));
+        }
+
+        Curso curso = builder.build();
+        return cursoRepository.save(curso);
+    }
+
+    /**
+     * POST /api/cursos/builder/regular
+     * Crear curso regular usando Director
+     */
+    @PostMapping("/builder/regular")
+    public Curso crearCursoRegular(@RequestBody Map<String, String> params) {
+        CursoDirector director = new CursoDirector();
+        Curso curso = director.construirCursoRegular(
+            params.get("nombre"),
+            params.get("periodoAcademico")
+        );
+        return cursoRepository.save(curso);
+    }
+
+    /**
+     * POST /api/cursos/builder/intensivo
+     * Crear curso intensivo usando Director
+     */
+    @PostMapping("/builder/intensivo")
+    public Curso crearCursoIntensivo(@RequestBody Map<String, Object> params) {
+        CursoDirector director = new CursoDirector();
+        Curso curso = director.construirCursoIntensivo(
+            (String) params.get("nombre"),
+            (Integer) params.get("profesorId")
+        );
+        return cursoRepository.save(curso);
+    }
+
+    /**
+     * POST /api/cursos/builder/certificacion
+     * Crear curso de certificación usando Director
+     */
+    @PostMapping("/builder/certificacion")
+    public Curso crearCursoCertificacion(@RequestBody Map<String, Object> params) {
+        CursoDirector director = new CursoDirector();
+        Curso curso = director.construirCursoCertificacion(
+            (String) params.get("nombre"),
+            (Integer) params.get("profesorId"),
+            (String) params.get("periodoAcademico")
+        );
+        return cursoRepository.save(curso);
     }
 }

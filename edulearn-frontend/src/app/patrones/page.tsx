@@ -37,9 +37,10 @@ export default function PatronesPage() {
 
   // Builder State
   const [cursos, setCursos] = useState<any[]>([])
-  const [tipoCurso, setTipoCurso] = useState("BASICO")
+  const [tipoCurso, setTipoCurso] = useState("REGULAR")
   const [nombreCurso, setNombreCurso] = useState("")
-  const [categoriaCurso, setCategoriaCurso] = useState("PROGRAMACION")
+  const [periodoAcademico, setPeriodoAcademico] = useState("2025-1")
+  const [profesorId, setProfesorId] = useState("1")
 
   // ========== SINGLETON ==========
   const cargarConfiguraciones = async () => {
@@ -281,7 +282,7 @@ export default function PatronesPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${API_URL}/cursos-builder`)
+      const response = await fetch(`${API_URL}/cursos`)
       const data = await response.json()
       setCursos(data)
       setResult(data)
@@ -305,30 +306,18 @@ export default function PatronesPage() {
       let body: any = { nombre: nombreCurso }
 
       switch (tipoCurso) {
-        case "BASICO":
-          endpoint = "/cursos-builder/basico"
-          break
-        case "PREMIUM":
-          endpoint = "/cursos-builder/premium"
-          body.categoria = categoriaCurso
-          break
-        case "VIRTUAL":
-          endpoint = "/cursos-builder/virtual"
-          body.duracion = 40
+        case "REGULAR":
+          endpoint = "/cursos/builder/regular"
+          body.periodoAcademico = periodoAcademico
           break
         case "INTENSIVO":
-          endpoint = "/cursos-builder/intensivo"
-          body.fechaInicio = new Date().toISOString().split('T')[0]
+          endpoint = "/cursos/builder/intensivo"
+          body.profesorId = parseInt(profesorId)
           break
-        case "GRATUITO":
-          endpoint = "/cursos-builder/gratuito"
-          body.categoria = categoriaCurso
-          break
-        case "CORPORATIVO":
-          endpoint = "/cursos-builder/corporativo"
-          body.duracion = 60
-          body.cupo = 25
-          body.fechaInicio = new Date().toISOString().split('T')[0]
+        case "CERTIFICACION":
+          endpoint = "/cursos/builder/certificacion"
+          body.profesorId = parseInt(profesorId)
+          body.periodoAcademico = periodoAcademico
           break
       }
 
@@ -341,34 +330,6 @@ export default function PatronesPage() {
       setResult(data)
       setNombreCurso("")
       cargarCursos()
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const verDemoBuilder = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await fetch(`${API_URL}/cursos-builder/demo`)
-      const data = await response.json()
-      setResult(data)
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const verEstadisticasCursos = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await fetch(`${API_URL}/cursos-builder/estadisticas`)
-      const data = await response.json()
-      setResult(data)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -752,12 +713,6 @@ export default function PatronesPage() {
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Cargar Cursos
                 </Button>
-                <Button onClick={verDemoBuilder} variant="outline" disabled={loading}>
-                  Ver Demo
-                </Button>
-                <Button onClick={verEstadisticasCursos} variant="outline" disabled={loading}>
-                  Ver Estadísticas
-                </Button>
               </div>
 
               {/* Formulario crear curso con Director */}
@@ -776,12 +731,9 @@ export default function PatronesPage() {
                         value={tipoCurso}
                         onChange={(e) => setTipoCurso(e.target.value)}
                       >
-                        <option value="BASICO">BÁSICO - 20hrs, Gratis, Presencial</option>
-                        <option value="PREMIUM">PREMIUM - 80hrs, $299, Híbrido, Certificado</option>
-                        <option value="VIRTUAL">VIRTUAL - 40hrs, $99, 100 cupos</option>
-                        <option value="INTENSIVO">INTENSIVO - 40hrs, 2 semanas, Proyecto</option>
-                        <option value="GRATUITO">GRATUITO - 10hrs, Virtual, Sin certificado</option>
-                        <option value="CORPORATIVO">CORPORATIVO - Personalizado, $499</option>
+                        <option value="REGULAR">REGULAR - 40hrs, Estado ACTIVO</option>
+                        <option value="INTENSIVO">INTENSIVO - 80hrs, Mayor carga horaria</option>
+                        <option value="CERTIFICACION">CERTIFICACIÓN - 60hrs, Certificación profesional</option>
                       </select>
                     </div>
                     <div>
@@ -794,20 +746,38 @@ export default function PatronesPage() {
                       />
                     </div>
                   </div>
-                  {(tipoCurso === "PREMIUM" || tipoCurso === "GRATUITO") && (
+                  {tipoCurso === "REGULAR" && (
                     <div>
-                      <Label htmlFor="categoriaCurso">Categoría</Label>
-                      <select
-                        id="categoriaCurso"
-                        className="w-full border rounded-md p-2"
-                        value={categoriaCurso}
-                        onChange={(e) => setCategoriaCurso(e.target.value)}
-                      >
-                        <option value="PROGRAMACION">Programación</option>
-                        <option value="DISENO">Diseño</option>
-                        <option value="MARKETING">Marketing</option>
-                        <option value="NEGOCIOS">Negocios</option>
-                      </select>
+                      <Label htmlFor="periodoAcademico">Período Académico</Label>
+                      <Input
+                        id="periodoAcademico"
+                        value={periodoAcademico}
+                        onChange={(e) => setPeriodoAcademico(e.target.value)}
+                        placeholder="Ej: 2025-1"
+                      />
+                    </div>
+                  )}
+                  {(tipoCurso === "INTENSIVO" || tipoCurso === "CERTIFICACION") && (
+                    <div>
+                      <Label htmlFor="profesorId">ID del Profesor Titular</Label>
+                      <Input
+                        id="profesorId"
+                        type="number"
+                        value={profesorId}
+                        onChange={(e) => setProfesorId(e.target.value)}
+                        placeholder="Ej: 1"
+                      />
+                    </div>
+                  )}
+                  {tipoCurso === "CERTIFICACION" && (
+                    <div>
+                      <Label htmlFor="periodoAcademico">Período Académico</Label>
+                      <Input
+                        id="periodoAcademico"
+                        value={periodoAcademico}
+                        onChange={(e) => setPeriodoAcademico(e.target.value)}
+                        placeholder="Ej: 2025-1"
+                      />
                     </div>
                   )}
                 </div>
@@ -827,25 +797,28 @@ export default function PatronesPage() {
                         <div className="flex flex-col gap-1">
                           <div className="flex gap-2 items-center">
                             <span className="font-semibold">{curso.nombre}</span>
-                            <Badge variant="outline">{curso.codigo}</Badge>
+                            {curso.codigo && <Badge variant="outline">{curso.codigo}</Badge>}
                           </div>
                           <div className="flex gap-2 text-xs">
                             <Badge variant={
-                              curso.tipoConstruccion === "PREMIUM" ? "default" :
-                              curso.tipoConstruccion === "GRATUITO" ? "secondary" :
+                              curso.tipoCurso === "INTENSIVO" ? "default" :
+                              curso.tipoCurso === "CERTIFICACION" ? "secondary" :
                               "outline"
                             }>
-                              {curso.tipoConstruccion}
+                              {curso.tipoCurso}
                             </Badge>
-                            <span>{curso.modalidad}</span>
-                            <span>{curso.duracionHoras}hrs</span>
-                            <span>${curso.precio}</span>
+                            <span>{curso.duracion}hrs</span>
+                            {curso.periodoAcademico && <span>{curso.periodoAcademico}</span>}
+                            {curso.profesorTitularId && <span>Prof: {curso.profesorTitularId}</span>}
                           </div>
+                          {curso.descripcion && (
+                            <p className="text-xs text-muted-foreground">{curso.descripcion}</p>
+                          )}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {curso.incluyeCertificado && "📜"}
-                          {curso.incluyeVideoLectures && "🎥"}
-                          {curso.incluyeProyectoFinal && "🎯"}
+                        <div className="text-xs">
+                          <Badge variant={curso.estado === "ACTIVO" ? "default" : "secondary"}>
+                            {curso.estado}
+                          </Badge>
                         </div>
                       </div>
                     ))}

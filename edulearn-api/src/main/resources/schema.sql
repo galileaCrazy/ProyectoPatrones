@@ -50,37 +50,6 @@ CREATE TABLE IF NOT EXISTS contenidos_educativos (
     INDEX idx_curso_id (curso_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ========== PATRÓN BUILDER ==========
--- Tabla para cursos construidos con el patrón Builder
-CREATE TABLE IF NOT EXISTS cursos_builder (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(255) NOT NULL,
-    codigo VARCHAR(50) NOT NULL UNIQUE,
-    descripcion TEXT,
-    modalidad VARCHAR(50),
-    nivel_dificultad VARCHAR(50),
-    duracion_horas INT,
-    cupo_maximo INT,
-    precio DECIMAL(10,2),
-    categoria VARCHAR(100),
-    incluye_certificado BOOLEAN DEFAULT FALSE,
-    incluye_video_lectures BOOLEAN DEFAULT FALSE,
-    incluye_evaluaciones BOOLEAN DEFAULT TRUE,
-    incluye_proyecto_final BOOLEAN DEFAULT FALSE,
-    requisitos_previos TEXT,
-    objetivos TEXT,
-    fecha_inicio DATE,
-    fecha_fin DATE,
-    estado VARCHAR(50),
-    fecha_creacion DATETIME,
-    tipo_construccion VARCHAR(50),
-    INDEX idx_modalidad (modalidad),
-    INDEX idx_nivel_dificultad (nivel_dificultad),
-    INDEX idx_categoria (categoria),
-    INDEX idx_estado (estado),
-    INDEX idx_tipo_construccion (tipo_construccion)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 -- ==================================================================
 -- Insertar configuraciones por defecto
 -- ==================================================================
