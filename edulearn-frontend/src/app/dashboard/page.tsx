@@ -17,12 +17,12 @@ export default function DashboardPage() {
       setIsAuthenticated(true)
       
       // Mapear tipos de usuario
-      const roleMap = {
+      const roleMap: { [key: string]: 'student' | 'professor' | 'admin' } = {
         'estudiante': 'student',
         'profesor': 'professor',
         'administrador': 'admin'
       }
-      setUserRole(roleMap[user.tipoUsuario] || 'student')
+      setUserRole(roleMap[user.tipoUsuario as string] || 'student')
     } else {
       router.push('/login')
     }
