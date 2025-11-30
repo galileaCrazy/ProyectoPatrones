@@ -42,6 +42,15 @@ export default function PatronesPage() {
   const [periodoAcademico, setPeriodoAcademico] = useState("2025-1")
   const [profesorId, setProfesorId] = useState("1")
 
+  // Prototype State
+  const [cursoSeleccionado, setCursoSeleccionado] = useState<any>(null)
+  const [nombreClon, setNombreClon] = useState("")
+  const [periodoClon, setPeriodoClon] = useState("2025-2")
+  const [tipoPlantilla, setTipoPlantilla] = useState("REGULAR")
+  const [nombrePlantilla, setNombrePlantilla] = useState("")
+  const [periodoPlantilla, setPeriodoPlantilla] = useState("2025-1")
+  const [profesorPlantilla, setProfesorPlantilla] = useState("1")
+
   // ========== SINGLETON ==========
   const cargarConfiguraciones = async () => {
     setLoading(true)
@@ -337,6 +346,71 @@ export default function PatronesPage() {
     }
   }
 
+  // ========== PROTOTYPE ==========
+  const clonarCurso = async () => {
+    if (!cursoSeleccionado) {
+      setError("Debes seleccionar un curso para clonar")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      const body = nombreClon || periodoClon !== "2025-2"
+        ? { nombre: nombreClon, periodoAcademico: periodoClon }
+        : {}
+
+      const response = await fetch(`${API_URL}/cursos/${cursoSeleccionado.id}/clonar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+      const data = await response.json()
+      setResult(data)
+      setNombreClon("")
+      setPeriodoClon("2025-2")
+      cargarCursos()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const crearDesdePlantilla = async () => {
+    if (!nombrePlantilla) {
+      setError("El nombre del curso es obligatorio")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      const body: any = {
+        nombre: nombrePlantilla,
+        periodoAcademico: periodoPlantilla
+      }
+
+      if (tipoPlantilla === "INTENSIVO" || tipoPlantilla === "CERTIFICACION") {
+        body.profesorId = profesorPlantilla
+      }
+
+      const response = await fetch(`${API_URL}/cursos/plantilla/${tipoPlantilla}/clonar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+      const data = await response.json()
+      setResult(data)
+      setNombrePlantilla("")
+      cargarCursos()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
@@ -345,13 +419,13 @@ export default function PatronesPage() {
           Demostración interactiva de los 23 patrones de diseño implementados en EduLearn
         </p>
         <div className="flex gap-2 mt-4">
-          <Badge variant="default">4 Completados</Badge>
-          <Badge variant="secondary">19 Pendientes</Badge>
+          <Badge variant="default">5 Completados</Badge>
+          <Badge variant="secondary">18 Pendientes</Badge>
         </div>
       </div>
 
       <Tabs defaultValue="singleton" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="singleton">
             <Settings className="mr-2 h-4 w-4" />
             Singleton
@@ -367,6 +441,10 @@ export default function PatronesPage() {
           <TabsTrigger value="builder">
             <Layers className="mr-2 h-4 w-4" />
             Builder
+          </TabsTrigger>
+          <TabsTrigger value="prototype">
+            <Layers className="mr-2 h-4 w-4" />
+            Prototype
           </TabsTrigger>
         </TabsList>
 
@@ -814,6 +892,182 @@ export default function PatronesPage() {
                           {curso.descripcion && (
                             <p className="text-xs text-muted-foreground">{curso.descripcion}</p>
                           )}
+                        </div>
+                        <div className="text-xs">
+                          <Badge variant={curso.estado === "ACTIVO" ? "default" : "secondary"}>
+                            {curso.estado}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== PROTOTYPE TAB ========== */}
+        <TabsContent value="prototype" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Patrón Prototype
+              </CardTitle>
+              <CardDescription>
+                Clonar cursos existentes o crear desde plantillas predefinidas para reutilizar configuraciones
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Botón de cargar cursos */}
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={cargarCursos} disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Cargar Cursos
+                </Button>
+              </div>
+
+              {/* Clonar curso existente */}
+              <div className="border rounded-lg p-4 space-y-4 bg-blue-50 dark:bg-blue-950">
+                <h3 className="font-semibold">Clonar Curso Existente</h3>
+                <p className="text-sm text-muted-foreground">
+                  Selecciona un curso existente para clonarlo con personalizaciones
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="cursoSeleccionado">Seleccionar Curso</Label>
+                    <select
+                      id="cursoSeleccionado"
+                      className="w-full border rounded-md p-2"
+                      value={cursoSeleccionado?.id || ""}
+                      onChange={(e) => {
+                        const curso = cursos.find(c => c.id === parseInt(e.target.value))
+                        setCursoSeleccionado(curso || null)
+                      }}
+                    >
+                      <option value="">-- Selecciona un curso --</option>
+                      {cursos.map(curso => (
+                        <option key={curso.id} value={curso.id}>
+                          {curso.nombre} ({curso.tipoCurso}) - {curso.periodoAcademico || 'Sin período'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {cursoSeleccionado && (
+                    <>
+                      <div>
+                        <Label htmlFor="nombreClon">Nuevo Nombre (opcional)</Label>
+                        <Input
+                          id="nombreClon"
+                          value={nombreClon}
+                          onChange={(e) => setNombreClon(e.target.value)}
+                          placeholder={`${cursoSeleccionado.nombre} (Copia)`}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="periodoClon">Nuevo Período Académico</Label>
+                        <Input
+                          id="periodoClon"
+                          value={periodoClon}
+                          onChange={(e) => setPeriodoClon(e.target.value)}
+                          placeholder="Ej: 2025-2"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <Button onClick={clonarCurso} disabled={loading || !cursoSeleccionado} className="w-full">
+                  <Layers className="mr-2 h-4 w-4" />
+                  Clonar Curso
+                </Button>
+              </div>
+
+              {/* Crear desde plantilla */}
+              <div className="border rounded-lg p-4 space-y-4 bg-green-50 dark:bg-green-950">
+                <h3 className="font-semibold">Crear Desde Plantilla</h3>
+                <p className="text-sm text-muted-foreground">
+                  Utiliza plantillas predefinidas para crear cursos rápidamente
+                </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="tipoPlantilla">Tipo de Plantilla</Label>
+                      <select
+                        id="tipoPlantilla"
+                        className="w-full border rounded-md p-2"
+                        value={tipoPlantilla}
+                        onChange={(e) => setTipoPlantilla(e.target.value)}
+                      >
+                        <option value="REGULAR">REGULAR - 40hrs</option>
+                        <option value="INTENSIVO">INTENSIVO - 80hrs</option>
+                        <option value="CERTIFICACION">CERTIFICACIÓN - 60hrs</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="nombrePlantilla">Nombre del Curso</Label>
+                      <Input
+                        id="nombrePlantilla"
+                        value={nombrePlantilla}
+                        onChange={(e) => setNombrePlantilla(e.target.value)}
+                        placeholder="Ej: Desarrollo Web Full Stack"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="periodoPlantilla">Período Académico</Label>
+                      <Input
+                        id="periodoPlantilla"
+                        value={periodoPlantilla}
+                        onChange={(e) => setPeriodoPlantilla(e.target.value)}
+                        placeholder="Ej: 2025-1"
+                      />
+                    </div>
+                    {(tipoPlantilla === "INTENSIVO" || tipoPlantilla === "CERTIFICACION") && (
+                      <div>
+                        <Label htmlFor="profesorPlantilla">ID del Profesor</Label>
+                        <Input
+                          id="profesorPlantilla"
+                          type="number"
+                          value={profesorPlantilla}
+                          onChange={(e) => setProfesorPlantilla(e.target.value)}
+                          placeholder="Ej: 1"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <Button onClick={crearDesdePlantilla} disabled={loading} className="w-full">
+                  <Layers className="mr-2 h-4 w-4" />
+                  Crear Desde Plantilla
+                </Button>
+              </div>
+
+              {/* Mostrar cursos */}
+              {cursos.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">Cursos Disponibles ({cursos.length})</h3>
+                  <div className="space-y-2">
+                    {cursos.slice(-6).reverse().map((curso) => (
+                      <div key={curso.id} className="flex items-center justify-between border-b pb-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex gap-2 items-center">
+                            <span className="font-semibold">{curso.nombre}</span>
+                            {curso.codigo && <Badge variant="outline">{curso.codigo}</Badge>}
+                          </div>
+                          <div className="flex gap-2 text-xs">
+                            <Badge variant={
+                              curso.tipoCurso === "INTENSIVO" ? "default" :
+                              curso.tipoCurso === "CERTIFICACION" ? "secondary" :
+                              "outline"
+                            }>
+                              {curso.tipoCurso}
+                            </Badge>
+                            <span>{curso.duracion}hrs</span>
+                            {curso.periodoAcademico && <span>{curso.periodoAcademico}</span>}
+                            {curso.profesorTitularId && <span>Prof: {curso.profesorTitularId}</span>}
+                          </div>
                         </div>
                         <div className="text-xs">
                           <Badge variant={curso.estado === "ACTIVO" ? "default" : "secondary"}>
