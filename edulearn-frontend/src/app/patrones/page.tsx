@@ -51,6 +51,16 @@ export default function PatronesPage() {
   const [periodoPlantilla, setPeriodoPlantilla] = useState("2025-1")
   const [profesorPlantilla, setProfesorPlantilla] = useState("1")
 
+  // Adapter State
+  const [integraciones, setIntegraciones] = useState<any[]>([])
+  const [tipoSistema, setTipoSistema] = useState("ZOOM")
+  const [nombreIntegracion, setNombreIntegracion] = useState("")
+  const [apiKey, setApiKey] = useState("")
+  const [apiSecret, setApiSecret] = useState("")
+  const [integracionSeleccionada, setIntegracionSeleccionada] = useState<any>(null)
+  const [nombreSala, setNombreSala] = useState("")
+  const [duracionReunion, setDuracionReunion] = useState("60")
+
   // ========== SINGLETON ==========
   const cargarConfiguraciones = async () => {
     setLoading(true)
@@ -411,6 +421,111 @@ export default function PatronesPage() {
     }
   }
 
+  // ========== ADAPTER ==========
+  const cargarIntegraciones = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/integraciones`)
+      const data = await response.json()
+      setIntegraciones(data)
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const crearIntegracion = async () => {
+    if (!nombreIntegracion) {
+      setError("El nombre de la integración es obligatorio")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      const body = {
+        tipoSistema,
+        nombreConfiguracion: nombreIntegracion,
+        apiKey,
+        apiSecret,
+        estado: "ACTIVO"
+      }
+
+      const response = await fetch(`${API_URL}/integraciones`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+      const data = await response.json()
+      setResult(data)
+      setNombreIntegracion("")
+      setApiKey("")
+      setApiSecret("")
+      cargarIntegraciones()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const crearReunion = async () => {
+    if (!integracionSeleccionada) {
+      setError("Debes seleccionar una integración")
+      return
+    }
+    if (!nombreSala) {
+      setError("El nombre de la sala es obligatorio")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      const body = {
+        nombreSala,
+        duracion: parseInt(duracionReunion)
+      }
+
+      const response = await fetch(`${API_URL}/integraciones/${integracionSeleccionada.id}/crear-reunion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+      const data = await response.json()
+      setResult(data)
+      setNombreSala("")
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verificarIntegracion = async () => {
+    if (!integracionSeleccionada) {
+      setError("Debes seleccionar una integración")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/integraciones/${integracionSeleccionada.id}/verificar`, {
+        method: "POST"
+      })
+      const data = await response.json()
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
@@ -419,13 +534,13 @@ export default function PatronesPage() {
           Demostración interactiva de los 23 patrones de diseño implementados en EduLearn
         </p>
         <div className="flex gap-2 mt-4">
-          <Badge variant="default">5 Completados</Badge>
-          <Badge variant="secondary">18 Pendientes</Badge>
+          <Badge variant="default">6 Completados</Badge>
+          <Badge variant="secondary">17 Pendientes</Badge>
         </div>
       </div>
 
       <Tabs defaultValue="singleton" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="singleton">
             <Settings className="mr-2 h-4 w-4" />
             Singleton
@@ -445,6 +560,10 @@ export default function PatronesPage() {
           <TabsTrigger value="prototype">
             <Layers className="mr-2 h-4 w-4" />
             Prototype
+          </TabsTrigger>
+          <TabsTrigger value="adapter">
+            <Send className="mr-2 h-4 w-4" />
+            Adapter
           </TabsTrigger>
         </TabsList>
 
@@ -1072,6 +1191,183 @@ export default function PatronesPage() {
                         <div className="text-xs">
                           <Badge variant={curso.estado === "ACTIVO" ? "default" : "secondary"}>
                             {curso.estado}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== ADAPTER TAB ========== */}
+        <TabsContent value="adapter" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Patrón Adapter
+              </CardTitle>
+              <CardDescription>
+                Integrar sistemas externos de videoconferencia (Zoom, Google Meet, MS Teams) con una interfaz común
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Botones de acción */}
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={cargarIntegraciones} disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Cargar Integraciones
+                </Button>
+              </div>
+
+              {/* Crear nueva integración */}
+              <div className="border rounded-lg p-4 space-y-4 bg-blue-50 dark:bg-blue-950">
+                <h3 className="font-semibold">Configurar Nueva Integración</h3>
+                <p className="text-sm text-muted-foreground">
+                  Conecta sistemas externos de videoconferencia usando el patrón Adapter
+                </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="tipoSistema">Sistema de Videoconferencia</Label>
+                      <select
+                        id="tipoSistema"
+                        className="w-full border rounded-md p-2"
+                        value={tipoSistema}
+                        onChange={(e) => setTipoSistema(e.target.value)}
+                      >
+                        <option value="ZOOM">Zoom</option>
+                        <option value="GOOGLE_MEET">Google Meet</option>
+                        <option value="MS_TEAMS">Microsoft Teams</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="nombreIntegracion">Nombre de Configuración</Label>
+                      <Input
+                        id="nombreIntegracion"
+                        value={nombreIntegracion}
+                        onChange={(e) => setNombreIntegracion(e.target.value)}
+                        placeholder="Ej: Zoom Principal"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="apiKey">API Key</Label>
+                      <Input
+                        id="apiKey"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder="Ej: sk_demo_key_12345"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="apiSecret">API Secret (opcional para Google Meet)</Label>
+                      <Input
+                        id="apiSecret"
+                        type="password"
+                        value={apiSecret}
+                        onChange={(e) => setApiSecret(e.target.value)}
+                        placeholder="Ej: secret_xyz"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <Button onClick={crearIntegracion} disabled={loading} className="w-full">
+                  <Send className="mr-2 h-4 w-4" />
+                  Crear Integración
+                </Button>
+              </div>
+
+              {/* Crear reunión usando integración */}
+              <div className="border rounded-lg p-4 space-y-4 bg-green-50 dark:bg-green-950">
+                <h3 className="font-semibold">Crear Reunión (Patrón Adapter)</h3>
+                <p className="text-sm text-muted-foreground">
+                  Usa cualquier integración configurada con una interfaz común
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="integracionSeleccionada">Seleccionar Integración</Label>
+                    <select
+                      id="integracionSeleccionada"
+                      className="w-full border rounded-md p-2"
+                      value={integracionSeleccionada?.id || ""}
+                      onChange={(e) => {
+                        const integracion = integraciones.find(i => i.id === parseInt(e.target.value))
+                        setIntegracionSeleccionada(integracion || null)
+                      }}
+                    >
+                      <option value="">-- Selecciona una integración --</option>
+                      {integraciones.map(integracion => (
+                        <option key={integracion.id} value={integracion.id}>
+                          {integracion.nombreConfiguracion} ({integracion.tipoSistema})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {integracionSeleccionada && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="nombreSala">Nombre de la Reunión</Label>
+                          <Input
+                            id="nombreSala"
+                            value={nombreSala}
+                            onChange={(e) => setNombreSala(e.target.value)}
+                            placeholder="Ej: Clase de Matemáticas"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="duracionReunion">Duración (minutos)</Label>
+                          <Input
+                            id="duracionReunion"
+                            type="number"
+                            value={duracionReunion}
+                            onChange={(e) => setDuracionReunion(e.target.value)}
+                            placeholder="60"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={crearReunion} disabled={loading} className="flex-1">
+                          <Send className="mr-2 h-4 w-4" />
+                          Crear Reunión
+                        </Button>
+                        <Button onClick={verificarIntegracion} disabled={loading} variant="outline">
+                          Verificar Conexión
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Mostrar integraciones */}
+              {integraciones.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">Integraciones Configuradas ({integraciones.length})</h3>
+                  <div className="space-y-2">
+                    {integraciones.map((integracion) => (
+                      <div key={integracion.id} className="flex items-center justify-between border-b pb-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex gap-2 items-center">
+                            <span className="font-semibold">{integracion.nombreConfiguracion}</span>
+                            <Badge variant="outline">{integracion.tipoSistema}</Badge>
+                          </div>
+                          <div className="flex gap-2 text-xs">
+                            {integracion.salaReunion && (
+                              <span className="text-muted-foreground truncate max-w-md">
+                                Última sala: {integracion.salaReunion}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-xs">
+                          <Badge variant={integracion.estado === "ACTIVO" ? "default" : "secondary"}>
+                            {integracion.estado}
                           </Badge>
                         </div>
                       </div>

@@ -50,6 +50,25 @@ CREATE TABLE IF NOT EXISTS contenidos_educativos (
     INDEX idx_curso_id (curso_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ========== PATRÓN ADAPTER ==========
+-- Tabla para integraciones externas (Zoom, Google Meet, MS Teams, etc.)
+CREATE TABLE IF NOT EXISTS integraciones_externas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_sistema VARCHAR(50) NOT NULL,
+    nombre_configuracion VARCHAR(255) NOT NULL,
+    api_key VARCHAR(500),
+    api_secret VARCHAR(500),
+    url_base VARCHAR(500),
+    estado VARCHAR(50) NOT NULL DEFAULT 'ACTIVO',
+    curso_id INT,
+    sala_reunion TEXT,
+    fecha_creacion DATETIME,
+    ultima_sincronizacion DATETIME,
+    INDEX idx_tipo_sistema (tipo_sistema),
+    INDEX idx_estado (estado),
+    INDEX idx_curso_id (curso_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ==================================================================
 -- Insertar configuraciones por defecto
 -- ==================================================================
