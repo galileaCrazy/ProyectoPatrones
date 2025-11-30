@@ -86,15 +86,11 @@ public class RegistroController {
             // Si es estudiante, crear registro en tabla estudiantes
             if ("estudiante".equalsIgnoreCase(tipoUsuario)) {
                 Estudiante estudiante = new Estudiante();
-                estudiante.setId(usuarioGuardado.getId()); // FK hacia usuarios
-                estudiante.setNombre(nombre);
-                estudiante.setApellidos(apellidos);
-                estudiante.setEmail(email);
-                estudiante.setPasswordHash(usuarioGuardado.getPasswordHash()); // Usar la contraseña encriptada
+                estudiante.setUsuario(usuarioGuardado); // Establecer relación con Usuario
 
-                // Generar código único
-                String codigo = generarCodigoEstudiante();
-                estudiante.setCodigo(codigo);
+                // Generar matrícula única
+                String matricula = generarCodigoEstudiante();
+                estudiante.setMatricula(matricula);
 
                 estudianteRepository.save(estudiante);
             }

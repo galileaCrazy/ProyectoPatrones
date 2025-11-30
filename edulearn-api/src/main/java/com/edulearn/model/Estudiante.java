@@ -9,13 +9,12 @@ public class Estudiante {
     @Column(name = "usuario_id")
     private Integer id;
 
-    private String matricula;
-    private String nombre;
-    private String apellidos;
-    private String email;
+    @OneToOne(fetch = FetchType.EAGER)
+    @MapsId
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
 
-    @Column(name = "password_hash")
-    private String passwordHash;
+    private String matricula;
 
     @Column(name = "programa_academico")
     private String programaAcademico;
@@ -27,18 +26,33 @@ public class Estudiante {
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
+
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+
     public String getMatricula() { return matricula; }
     public void setMatricula(String matricula) { this.matricula = matricula; }
     public String getCodigo() { return matricula; } // Alias para compatibilidad
     public void setCodigo(String codigo) { this.matricula = codigo; }
-    public String getNombre() { return nombre; }
-    public void setNombre(String nombre) { this.nombre = nombre; }
-    public String getApellidos() { return apellidos; }
-    public void setApellidos(String apellidos) { this.apellidos = apellidos; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    // Métodos delegados a Usuario para compatibilidad
+    public String getNombre() { return usuario != null ? usuario.getNombre() : null; }
+    public void setNombre(String nombre) {
+        if (usuario != null) usuario.setNombre(nombre);
+    }
+    public String getApellidos() { return usuario != null ? usuario.getApellidos() : null; }
+    public void setApellidos(String apellidos) {
+        if (usuario != null) usuario.setApellidos(apellidos);
+    }
+    public String getEmail() { return usuario != null ? usuario.getEmail() : null; }
+    public void setEmail(String email) {
+        if (usuario != null) usuario.setEmail(email);
+    }
+    public String getPasswordHash() { return usuario != null ? usuario.getPasswordHash() : null; }
+    public void setPasswordHash(String passwordHash) {
+        if (usuario != null) usuario.setPasswordHash(passwordHash);
+    }
+
     public String getProgramaAcademico() { return programaAcademico; }
     public void setProgramaAcademico(String programaAcademico) { this.programaAcademico = programaAcademico; }
     public Integer getSemestre() { return semestre; }
