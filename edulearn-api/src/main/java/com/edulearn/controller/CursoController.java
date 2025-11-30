@@ -3,6 +3,7 @@ package com.edulearn.controller;
 import com.edulearn.model.Curso;
 import com.edulearn.patterns.creational.builder.CursoBuilder;
 import com.edulearn.patterns.creational.builder.CursoDirector;
+import com.edulearn.patterns.creational.prototype.CursoPrototype;
 import com.edulearn.repository.CursoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -142,5 +143,66 @@ public class CursoController {
             (String) params.get("periodoAcademico")
         );
         return cursoRepository.save(curso);
+    }
+
+    // ========== ENDPOINTS CON PATRÓN PROTOTYPE ==========
+
+    /**
+     * POST /api/cursos/{id}/clonar
+     * Clonar un curso existente usando patrón Prototype
+     */
+    @PostMapping("/{id}/clonar")
+    public Curso clonarCurso(@PathVariable Integer id, @RequestBody(required = false) Map<String, String> params) {
+        Curso cursoOriginal = cursoRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Curso no encontrado con ID: " + id));
+
+        CursoPrototype prototype = new CursoPrototype(cursoOriginal);
+
+        Curso cursoClon;
+        if (params != null && (params.containsKey("nombre") || params.containsKey("periodoAcademico"))) {
+            cursoClon = prototype.cloneConPersonalizacion(
+                params.get("nombre"),
+                params.get("periodoAcademico")
+            );
+        } else {
+            cursoClon = prototype.clone();
+        }
+
+        return cursoRepository.save(cursoClon);
+    }
+
+    /**
+     * POST /api/cursos/plantilla/{tipoCurso}
+     * Crear una plantilla de curso usando Prototype
+     */
+    @PostMapping("/plantilla/{tipoCurso}")
+    public Curso crearPlantilla(@PathVariable String tipoCurso) {
+        Curso plantilla = CursoPrototype.crearPlantilla(tipoCurso);
+        return cursoRepository.save(plantilla);
+    }
+
+    /**
+     * POST /api/cursos/plantilla/{tipoCurso}/clonar
+     * Crear curso desde plantilla con personalización
+     */
+    @PostMapping("/plantilla/{tipoCurso}/clonar")
+    public Curso crearDesdePlantilla(
+        @PathVariable String tipoCurso,
+        @RequestBody Map<String, String> params
+    ) {
+        Curso plantilla = CursoPrototype.crearPlantilla(tipoCurso);
+        CursoPrototype prototype = new CursoPrototype(plantilla);
+
+        Curso cursoNuevo = prototype.cloneConPersonalizacion(
+            params.get("nombre"),
+            params.get("periodoAcademico")
+        );
+
+        // Asignar profesor si viene en params
+        if (params.containsKey("profesorId")) {
+            cursoNuevo.setProfesorTitularId(Integer.parseInt(params.get("profesorId")));
+        }
+
+        return cursoRepository.save(cursoNuevo);
     }
 }
