@@ -66,6 +66,12 @@ export default function PatronesPage() {
   const [tipoReporte, setTipoReporte] = useState("ESTUDIANTES")
   const [formatoReporte, setFormatoReporte] = useState("PDF")
 
+  // Composite State
+  const [modulos, setModulos] = useState<any[]>([])
+  const [cursoIdModulos, setCursoIdModulos] = useState("1")
+  const [tipoEstructura, setTipoEstructura] = useState("BASICO")
+  const [arbolModulos, setArbolModulos] = useState<any>(null)
+
   // ========== SINGLETON ==========
   const cargarConfiguraciones = async () => {
     setLoading(true)
@@ -570,6 +576,44 @@ export default function PatronesPage() {
     }
   }
 
+  // ========== COMPOSITE ==========
+  const cargarModulos = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/modulos/curso/${cursoIdModulos}/arbol`)
+      const data = await response.json()
+      setArbolModulos(data)
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const crearEstructura = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/modulos/crear-estructura`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cursoId: parseInt(cursoIdModulos),
+          tipo: tipoEstructura
+        })
+      })
+      const data = await response.json()
+      setResult(data)
+      cargarModulos()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
@@ -578,13 +622,13 @@ export default function PatronesPage() {
           Demostración interactiva de los 23 patrones de diseño implementados en EduLearn
         </p>
         <div className="flex gap-2 mt-4">
-          <Badge variant="default">7 Completados</Badge>
-          <Badge variant="secondary">16 Pendientes</Badge>
+          <Badge variant="default">8 Completados</Badge>
+          <Badge variant="secondary">15 Pendientes</Badge>
         </div>
       </div>
 
       <Tabs defaultValue="singleton" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="singleton">
             <Settings className="mr-2 h-4 w-4" />
             Singleton
@@ -612,6 +656,10 @@ export default function PatronesPage() {
           <TabsTrigger value="bridge">
             <BookOpen className="mr-2 h-4 w-4" />
             Bridge
+          </TabsTrigger>
+          <TabsTrigger value="composite">
+            <Layers className="mr-2 h-4 w-4" />
+            Composite
           </TabsTrigger>
         </TabsList>
 
@@ -1512,6 +1560,89 @@ export default function PatronesPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== COMPOSITE TAB ========== */}
+        <TabsContent value="composite" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Patrón Composite
+              </CardTitle>
+              <CardDescription>
+                Estructura jerárquica de módulos y submódulos (árbol) con operaciones recursivas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={cargarModulos} disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Cargar Estructura
+                </Button>
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-4 bg-blue-50 dark:bg-blue-950">
+                <h3 className="font-semibold">Crear Estructura de Módulos (Patrón Composite)</h3>
+                <p className="text-sm text-muted-foreground">
+                  Crea una jerarquía de módulos y submódulos con diferentes niveles de complejidad
+                </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="cursoIdModulos">Curso ID</Label>
+                      <Input
+                        id="cursoIdModulos"
+                        type="number"
+                        value={cursoIdModulos}
+                        onChange={(e) => setCursoIdModulos(e.target.value)}
+                        placeholder="1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="tipoEstructura">Tipo de Estructura</Label>
+                      <select
+                        id="tipoEstructura"
+                        className="w-full border rounded-md p-2"
+                        value={tipoEstructura}
+                        onChange={(e) => setTipoEstructura(e.target.value)}
+                      >
+                        <option value="BASICO">BÁSICO - 2 módulos, 4 temas (16h total)</option>
+                        <option value="INTERMEDIO">INTERMEDIO - 3 módulos, 9 temas (40h total)</option>
+                        <option value="AVANZADO">AVANZADO - 4 módulos jerárquicos (72h total)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <Button onClick={crearEstructura} disabled={loading} className="w-full">
+                  <Layers className="mr-2 h-4 w-4" />
+                  Crear Estructura
+                </Button>
+              </div>
+
+              {arbolModulos && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">Estructura Jerárquica (Árbol Composite)</h3>
+                  <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-lg">
+                    <pre className="text-xs whitespace-pre-wrap font-mono">
+                      {arbolModulos.arbolRenderizado || JSON.stringify(arbolModulos, null, 2)}
+                    </pre>
+                  </div>
+                  {arbolModulos.duracionTotal && (
+                    <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                      <p className="text-sm">
+                        <span className="font-semibold">Duración Total Calculada (operación recursiva): </span>
+                        {arbolModulos.duracionTotal} horas
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        El patrón Composite permite calcular la duración total recursivamente sumando todos los componentes del árbol
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
