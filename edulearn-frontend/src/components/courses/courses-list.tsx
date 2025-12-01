@@ -46,9 +46,10 @@ const MOCK_COURSES = [
 interface CoursesListViewProps {
   role: 'student' | 'professor' | 'admin'
   onSelectCourse: (id: string) => void
+  onCreateCourse?: () => void
 }
 
-export default function CoursesListView({ role, onSelectCourse }: CoursesListViewProps) {
+export default function CoursesListView({ role, onSelectCourse, onCreateCourse }: CoursesListViewProps) {
   const [selectedFilter, setSelectedFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -69,7 +70,10 @@ export default function CoursesListView({ role, onSelectCourse }: CoursesListVie
           </p>
         </div>
         {role !== 'student' && (
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button
+            onClick={onCreateCourse}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
             + Crear Curso
           </Button>
         )}
