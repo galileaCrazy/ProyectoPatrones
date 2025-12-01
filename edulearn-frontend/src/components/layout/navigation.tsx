@@ -14,6 +14,7 @@ const menuItems = {
   student: [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'courses', label: 'Mis Cursos', icon: '📚' },
+    { id: 'inscripciones', label: 'Inscripciones', icon: '✍️' },
     { id: 'evaluations', label: 'Mis Evaluaciones', icon: '📝' },
     { id: 'calendar', label: 'Calendario', icon: '📅' },
     { id: 'forums', label: 'Foros', icon: '💬' },

@@ -12,6 +12,7 @@ import EvaluationGradeView from '@/components/evaluations/evaluation-grade'
 import ReportsView from '@/components/reports/reports-generator'
 import CalendarView from '@/components/calendar/calendar'
 import ForumsView from '@/components/forums/forums'
+import { StudentInscripcionView } from '@/components/inscripciones'
 
 interface DashboardProps {
   role: 'student' | 'professor' | 'admin'
@@ -56,6 +57,8 @@ export default function Dashboard({ role, onLogout }: DashboardProps) {
         return <CalendarView />
       case 'forums':
         return <ForumsView />
+      case 'inscripciones':
+        return <StudentInscripcionView />
       default:
         return <DashboardContent role={role} />
     }
