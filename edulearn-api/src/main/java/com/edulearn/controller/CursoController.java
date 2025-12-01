@@ -54,6 +54,9 @@ public class CursoController {
         if (cursoActualizado.getEstado() != null) {
             cursoExistente.setEstado(cursoActualizado.getEstado());
         }
+        if (cursoActualizado.getEstrategiaEvaluacion() != null) {
+            cursoExistente.setEstrategiaEvaluacion(cursoActualizado.getEstrategiaEvaluacion());
+        }
 
         return cursoRepository.save(cursoExistente);
     }
@@ -96,6 +99,9 @@ public class CursoController {
         }
         if (params.containsKey("estado")) {
             builder.setEstado((String) params.get("estado"));
+        }
+        if (params.containsKey("estrategiaEvaluacion")) {
+            builder.setEstrategiaEvaluacion((String) params.get("estrategiaEvaluacion"));
         }
 
         Curso curso = builder.build();

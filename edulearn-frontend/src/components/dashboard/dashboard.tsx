@@ -12,6 +12,7 @@ import EvaluationGradeView from '@/components/evaluations/evaluation-grade'
 import ReportsView from '@/components/reports/reports-generator'
 import CalendarView from '@/components/calendar/calendar'
 import ForumsView from '@/components/forums/forums'
+import { StudentInscripcionView } from '@/components/inscripciones'
 
 interface DashboardProps {
   role: 'student' | 'professor' | 'admin'
@@ -27,14 +28,23 @@ export default function Dashboard({ role, onLogout }: DashboardProps) {
       case 'dashboard':
         return <DashboardContent role={role} />
       case 'courses':
-        return <CoursesListView role={role} onSelectCourse={(id) => {
-          setSelectedCourseId(id)
-          setCurrentView('course-detail')
-        }} />
+        return <CoursesListView
+          role={role}
+          onSelectCourse={(id) => {
+            setSelectedCourseId(id)
+            setCurrentView('course-detail')
+          }}
+          onCreateCourse={() => setCurrentView('create-course')}
+        />
       case 'course-detail':
         return <CourseDetailView courseId={selectedCourseId} role={role} onBack={() => setCurrentView('courses')} />
       case 'create-course':
-        return <CourseBuilderView onClose={() => setCurrentView('courses')} />
+        return <CourseBuilderView
+          onClose={() => setCurrentView('courses')}
+          userRole={role === 'professor' ? 'professor' : 'admin'}
+          userId="1"
+          userName="Usuario Actual"
+        />
       case 'students':
         return <StudentsManagementView />
       case 'evaluations':
@@ -47,6 +57,8 @@ export default function Dashboard({ role, onLogout }: DashboardProps) {
         return <CalendarView />
       case 'forums':
         return <ForumsView />
+      case 'inscripciones':
+        return <StudentInscripcionView />
       default:
         return <DashboardContent role={role} />
     }

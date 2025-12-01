@@ -26,6 +26,9 @@ public class Curso {
 
     private Integer duracion;
 
+    @Column(name = "estrategia_evaluacion")
+    private String estrategiaEvaluacion;
+
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
     public String getCodigo() { return codigo; }
@@ -44,4 +47,6 @@ public class Curso {
     public void setPeriodoAcademico(String periodoAcademico) { this.periodoAcademico = periodoAcademico; }
     public Integer getDuracion() { return duracion; }
     public void setDuracion(Integer duracion) { this.duracion = duracion; }
+    public String getEstrategiaEvaluacion() { return estrategiaEvaluacion; }
+    public void setEstrategiaEvaluacion(String estrategiaEvaluacion) { this.estrategiaEvaluacion = estrategiaEvaluacion; }
 }
