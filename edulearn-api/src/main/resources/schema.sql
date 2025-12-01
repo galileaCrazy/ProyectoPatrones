@@ -88,6 +88,25 @@ CREATE TABLE IF NOT EXISTS reportes_generados (
     INDEX idx_estado (estado)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ========== PATRÓN COMPOSITE ==========
+-- Tabla para módulos y submódulos de cursos (estructura jerárquica)
+CREATE TABLE IF NOT EXISTS modulos_curso (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    curso_id INT NOT NULL,
+    nombre VARCHAR(255) NOT NULL,
+    descripcion TEXT,
+    orden INT,
+    duracion_horas INT,
+    modulo_padre_id INT,
+    es_hoja BOOLEAN DEFAULT TRUE,
+    nivel INT DEFAULT 0,
+    estado VARCHAR(50) DEFAULT 'ACTIVO',
+    fecha_creacion DATETIME,
+    INDEX idx_curso_id (curso_id),
+    INDEX idx_modulo_padre_id (modulo_padre_id),
+    INDEX idx_estado (estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ==================================================================
 -- Insertar configuraciones por defecto
 -- ==================================================================
