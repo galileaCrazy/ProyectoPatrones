@@ -50,6 +50,25 @@ CREATE TABLE IF NOT EXISTS contenidos_educativos (
     INDEX idx_curso_id (curso_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ========== PATRONES BUILDER Y PROTOTYPE ==========
+-- Tabla para cursos (usada por Builder y Prototype)
+CREATE TABLE IF NOT EXISTS cursos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(50),
+    nombre VARCHAR(255) NOT NULL,
+    descripcion TEXT,
+    tipo_curso VARCHAR(50),
+    estado VARCHAR(50) DEFAULT 'BORRADOR',
+    profesor_titular_id INT,
+    periodo_academico VARCHAR(50),
+    duracion INT,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_tipo_curso (tipo_curso),
+    INDEX idx_estado (estado),
+    INDEX idx_profesor_titular_id (profesor_titular_id),
+    INDEX idx_periodo_academico (periodo_academico)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ========== PATRÓN ADAPTER ==========
 -- Tabla para integraciones externas (Zoom, Google Meet, MS Teams, etc.)
 CREATE TABLE IF NOT EXISTS integraciones_externas (
