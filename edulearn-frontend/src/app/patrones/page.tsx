@@ -61,6 +61,11 @@ export default function PatronesPage() {
   const [nombreSala, setNombreSala] = useState("")
   const [duracionReunion, setDuracionReunion] = useState("60")
 
+  // Bridge State
+  const [reportes, setReportes] = useState<any[]>([])
+  const [tipoReporte, setTipoReporte] = useState("ESTUDIANTES")
+  const [formatoReporte, setFormatoReporte] = useState("PDF")
+
   // ========== SINGLETON ==========
   const cargarConfiguraciones = async () => {
     setLoading(true)
@@ -526,6 +531,45 @@ export default function PatronesPage() {
     }
   }
 
+  // ========== BRIDGE ==========
+  const cargarReportes = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_URL}/reportes`)
+      const data = await response.json()
+      setReportes(data)
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const generarReporte = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const endpoint = tipoReporte === "ESTUDIANTES" ? "/reportes/estudiantes" :
+                       tipoReporte === "CURSOS" ? "/reportes/cursos" :
+                       "/reportes/calificaciones"
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formato: formatoReporte })
+      })
+      const data = await response.json()
+      setResult(data)
+      cargarReportes()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
@@ -534,13 +578,13 @@ export default function PatronesPage() {
           Demostración interactiva de los 23 patrones de diseño implementados en EduLearn
         </p>
         <div className="flex gap-2 mt-4">
-          <Badge variant="default">6 Completados</Badge>
-          <Badge variant="secondary">17 Pendientes</Badge>
+          <Badge variant="default">7 Completados</Badge>
+          <Badge variant="secondary">16 Pendientes</Badge>
         </div>
       </div>
 
       <Tabs defaultValue="singleton" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="singleton">
             <Settings className="mr-2 h-4 w-4" />
             Singleton
@@ -564,6 +608,10 @@ export default function PatronesPage() {
           <TabsTrigger value="adapter">
             <Send className="mr-2 h-4 w-4" />
             Adapter
+          </TabsTrigger>
+          <TabsTrigger value="bridge">
+            <BookOpen className="mr-2 h-4 w-4" />
+            Bridge
           </TabsTrigger>
         </TabsList>
 
@@ -1370,6 +1418,97 @@ export default function PatronesPage() {
                             {integracion.estado}
                           </Badge>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== BRIDGE TAB ========== */}
+        <TabsContent value="bridge" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Patrón Bridge
+              </CardTitle>
+              <CardDescription>
+                Separar abstracción (tipo reporte) de implementación (formato) para generar reportes en PDF, Excel o HTML
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={cargarReportes} disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Cargar Reportes
+                </Button>
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-4 bg-blue-50 dark:bg-blue-950">
+                <h3 className="font-semibold">Generar Reporte (Patrón Bridge)</h3>
+                <p className="text-sm text-muted-foreground">
+                  La abstracción (tipo de reporte) está separada de la implementación (formato)
+                </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="tipoReporte">Tipo de Reporte (Abstracción)</Label>
+                      <select
+                        id="tipoReporte"
+                        className="w-full border rounded-md p-2"
+                        value={tipoReporte}
+                        onChange={(e) => setTipoReporte(e.target.value)}
+                      >
+                        <option value="ESTUDIANTES">Estudiantes</option>
+                        <option value="CURSOS">Cursos</option>
+                        <option value="CALIFICACIONES">Calificaciones</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="formatoReporte">Formato (Implementación)</Label>
+                      <select
+                        id="formatoReporte"
+                        className="w-full border rounded-md p-2"
+                        value={formatoReporte}
+                        onChange={(e) => setFormatoReporte(e.target.value)}
+                      >
+                        <option value="PDF">PDF</option>
+                        <option value="EXCEL">Excel</option>
+                        <option value="HTML">HTML</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <Button onClick={generarReporte} disabled={loading} className="w-full">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Generar Reporte
+                </Button>
+              </div>
+
+              {reportes.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">Reportes Generados ({reportes.length})</h3>
+                  <div className="space-y-2">
+                    {reportes.slice(-6).reverse().map((reporte) => (
+                      <div key={reporte.id} className="flex items-center justify-between border-b pb-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex gap-2 items-center">
+                            <span className="font-semibold">{reporte.titulo}</span>
+                            <Badge variant="outline">{reporte.formato}</Badge>
+                          </div>
+                          <div className="flex gap-2 text-xs text-muted-foreground">
+                            <span>Tipo: {reporte.tipoReporte}</span>
+                            {reporte.fechaGeneracion && (
+                              <span>{new Date(reporte.fechaGeneracion).toLocaleString()}</span>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant={reporte.estado === "GENERADO" ? "default" : "secondary"}>
+                          {reporte.estado}
+                        </Badge>
                       </div>
                     ))}
                   </div>
