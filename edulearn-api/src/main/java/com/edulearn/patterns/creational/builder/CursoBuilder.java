@@ -28,6 +28,7 @@ public class CursoBuilder {
     private Integer profesorTitularId;
     private String periodoAcademico;
     private Integer duracion = 40; // en horas
+    private String estrategiaEvaluacion; // PONDERADA, SIMPLE, COMPETENCIAS
 
     /**
      * Constructor vacío - genera código automático
@@ -86,6 +87,11 @@ public class CursoBuilder {
         return this;
     }
 
+    public CursoBuilder setEstrategiaEvaluacion(String estrategiaEvaluacion) {
+        this.estrategiaEvaluacion = estrategiaEvaluacion;
+        return this;
+    }
+
     /**
      * Método de construcción - crea el Curso
      */
@@ -109,6 +115,7 @@ public class CursoBuilder {
         curso.setProfesorTitularId(profesorTitularId);
         curso.setPeriodoAcademico(periodoAcademico);
         curso.setDuracion(duracion);
+        curso.setEstrategiaEvaluacion(estrategiaEvaluacion);
 
         return curso;
     }
@@ -125,5 +132,6 @@ public class CursoBuilder {
         this.profesorTitularId = null;
         this.periodoAcademico = null;
         this.duracion = 40;
+        this.estrategiaEvaluacion = null;
     }
 }

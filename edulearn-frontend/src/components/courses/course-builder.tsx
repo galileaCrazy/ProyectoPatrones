@@ -22,13 +22,14 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
   const [courseData, setCourseData] = useState({
     name: '',
     description: '',
-    type: '',
-    period: '',
     fechaInicio: '',
     fechaFin: '',
     cupoMaximo: '',
     professorId: userRole === 'professor' ? userId : '',
     professorName: userRole === 'professor' ? userName : '',
+    type: 'Virtual',
+    period: '2025-1',
+    evaluationStrategy: 'PONDERADA',
   })
 
   // Configuración según el rol usando Chain of Responsibility
@@ -386,6 +387,21 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
                   </p>
                 </div>
               )}
+              <div>
+                <label className="text-sm font-medium text-foreground block mb-2">Estrategia de Evaluación</label>
+                <select
+                  value={courseData.evaluationStrategy}
+                  onChange={(e) => setCourseData({ ...courseData, evaluationStrategy: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="PONDERADA">Evaluación Ponderada (Tareas 30%, Exámenes 50%, Proyecto 20%)</option>
+                  <option value="SIMPLE">Promedio Simple (Todas las evaluaciones tienen el mismo peso)</option>
+                  <option value="COMPETENCIAS">Evaluación por Competencias (Basada en dominio de habilidades)</option>
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Define cómo se calcularán las calificaciones finales de los estudiantes
+                </p>
+              </div>
             </div>
           )}
 
