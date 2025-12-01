@@ -1,21 +1,64 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 interface CourseBuilderViewProps {
   onClose: () => void
+  userRole: 'professor' | 'admin'
+  userId?: string
+  userName?: string
 }
 
-export default function CourseBuilderView({ onClose }: CourseBuilderViewProps) {
+// Mock de profesores (esto vendría del backend)
+const MOCK_PROFESSORS = [
+  { id: '1', name: 'Juan Pérez' },
+  { id: '2', name: 'María González' },
+  { id: '3', name: 'Carlos Ramírez' },
+  { id: '4', name: 'Laura Martínez' },
+]
+
+export default function CourseBuilderView({ onClose, userRole, userId = '1', userName = 'Juan Pérez' }: CourseBuilderViewProps) {
   const [step, setStep] = useState(1)
   const [courseData, setCourseData] = useState({
     name: '',
     description: '',
     type: 'Virtual',
     period: '2025-1',
+    professorId: userRole === 'professor' ? userId : '',
+    professorName: userRole === 'professor' ? userName : '',
   })
+
+  // Configuración según el rol usando Chain of Responsibility
+  const [formConfig, setFormConfig] = useState({
+    mostrarListaProfesores: userRole === 'admin',
+    modoAutoAsignacion: userRole === 'professor',
+    profesorAsignado: userRole === 'professor' ? userName : null,
+  })
+
+  useEffect(() => {
+    // Simular llamada al backend para obtener configuración de Chain of Responsibility
+    const configurarFormulario = async () => {
+      // Aquí se haría la llamada al endpoint que usa el patrón Chain of Responsibility
+      // Por ahora usamos lógica local
+      if (userRole === 'professor') {
+        setFormConfig({
+          mostrarListaProfesores: false,
+          modoAutoAsignacion: true,
+          profesorAsignado: userName,
+        })
+      } else {
+        setFormConfig({
+          mostrarListaProfesores: true,
+          modoAutoAsignacion: false,
+          profesorAsignado: null,
+        })
+      }
+    }
+
+    configurarFormulario()
+  }, [userRole, userName])
 
   const handleNext = () => {
     if (step < 5) setStep(step + 1)
@@ -106,14 +149,51 @@ export default function CourseBuilderView({ onClose }: CourseBuilderViewProps) {
 
           {step === 2 && (
             <div className="space-y-4">
+              {/* Sección de Profesor - Adaptada dinámicamente según Chain of Responsibility */}
               <div>
-                <label className="text-sm font-medium text-foreground block mb-2">Profesor Asignado</label>
-                <select className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option>Juan Pérez</option>
-                  <option>María González</option>
-                  <option>Carlos Ramírez</option>
-                </select>
+                <label className="text-sm font-medium text-foreground block mb-2">
+                  Profesor Asignado
+                  {formConfig.modoAutoAsignacion && (
+                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      Auto-asignado
+                    </span>
+                  )}
+                </label>
+
+                {/* PROFESOR: Muestra solo su nombre (no puede cambiarlo) */}
+                {formConfig.modoAutoAsignacion && !formConfig.mostrarListaProfesores && (
+                  <div className="w-full px-4 py-2 rounded-lg border border-input bg-muted/50 text-foreground flex items-center justify-between">
+                    <span className="font-medium">{formConfig.profesorAsignado}</span>
+                    <span className="text-xs text-muted-foreground">
+                      (Tú serás el profesor de este curso)
+                    </span>
+                  </div>
+                )}
+
+                {/* ADMINISTRADOR: Muestra lista desplegable de profesores */}
+                {formConfig.mostrarListaProfesores && !formConfig.modoAutoAsignacion && (
+                  <select
+                    value={courseData.professorId}
+                    onChange={(e) => {
+                      const selectedProf = MOCK_PROFESSORS.find(p => p.id === e.target.value)
+                      setCourseData({
+                        ...courseData,
+                        professorId: e.target.value,
+                        professorName: selectedProf?.name || ''
+                      })
+                    }}
+                    className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Selecciona un profesor...</option>
+                    {MOCK_PROFESSORS.map((professor) => (
+                      <option key={professor.id} value={professor.id}>
+                        {professor.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-foreground block mb-2">Fecha de Inicio</label>
