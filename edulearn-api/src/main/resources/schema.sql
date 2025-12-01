@@ -69,6 +69,25 @@ CREATE TABLE IF NOT EXISTS integraciones_externas (
     INDEX idx_curso_id (curso_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ========== PATRÓN BRIDGE ==========
+-- Tabla para reportes generados (Bridge separa abstracción de implementación)
+CREATE TABLE IF NOT EXISTS reportes_generados (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_reporte VARCHAR(50) NOT NULL,
+    formato VARCHAR(50) NOT NULL,
+    titulo VARCHAR(255) NOT NULL,
+    contenido TEXT,
+    ruta_archivo VARCHAR(500),
+    usuario_id INT,
+    fecha_generacion DATETIME,
+    parametros TEXT,
+    estado VARCHAR(50),
+    INDEX idx_tipo_reporte (tipo_reporte),
+    INDEX idx_formato (formato),
+    INDEX idx_usuario_id (usuario_id),
+    INDEX idx_estado (estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ==================================================================
 -- Insertar configuraciones por defecto
 -- ==================================================================
