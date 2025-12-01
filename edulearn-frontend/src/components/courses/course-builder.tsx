@@ -294,6 +294,37 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
                     (Solo períodos futuros)
                   </span>
                 </label>
+                
+                {/* Mensaje informativo sobre la fecha actual y reglas */}
+                <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <div className="text-blue-600 dark:text-blue-400 text-lg mt-0.5">📅</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                        Fecha actual: {new Date().toLocaleDateString('es-ES', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                        <strong>Regla importante:</strong> Solo puedes crear cursos para períodos académicos que <strong>aún no han comenzado</strong>.
+                        Los períodos en curso o ya finalizados no están disponibles.
+                      </p>
+                      <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">
+                          Períodos académicos:
+                        </p>
+                        <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-0.5 ml-4">
+                          <li>• <strong>Enero-Junio:</strong> Del 1 de enero al 30 de junio</li>
+                          <li>• <strong>Agosto-Diciembre:</strong> Del 1 de agosto al 31 de diciembre</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <select
                   value={courseData.period}
                   onChange={(e) => {
@@ -316,10 +347,24 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
                   )}
                 </select>
                 {errors.period && <p className="text-xs text-red-500 mt-1">{errors.period}</p>}
-                {periodosValidos.length > 0 && courseData.period && (
-                  <p className="text-xs text-green-600 mt-1">
-                    ✅ Validado con Chain of Responsibility - Hoy: {new Date().toLocaleDateString('es-ES')}
-                  </p>
+                
+                {/* Mensaje de éxito al cargar períodos */}
+                {periodosValidos.length > 0 && !errors.period && !courseData.period && (
+                  <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded">
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                      <span className="font-medium">✅ Chain of Responsibility:</span>
+                      {' '}{periodosValidos.length} período(s) futuro(s) disponible(s)
+                    </p>
+                  </div>
+                )}
+
+                {/* Mensaje de confirmación de selección */}
+                {periodosValidos.length > 0 && courseData.period && !errors.period && (
+                  <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded">
+                    <p className="text-xs text-green-700 dark:text-green-300 font-medium">
+                      ✅ Período seleccionado validado: <span className="font-bold">{courseData.period}</span>
+                    </p>
+                  </div>
                 )}
               </div>
 
