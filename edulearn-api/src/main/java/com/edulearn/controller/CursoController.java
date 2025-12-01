@@ -16,7 +16,7 @@ public class CursoController {
     @Autowired
     private CursoRepository cursoRepository;
 
-    @GetMapping
+    @GetMapping         // ← sin nada = responde a /api/cursos
     public List<Curso> getAll() {
         return cursoRepository.findAll();
     }

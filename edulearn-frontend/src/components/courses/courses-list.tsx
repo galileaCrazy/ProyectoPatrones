@@ -3,49 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import CourseBuilderView from './course-builder'
+import { toast } from '@/components/ui/use-toast'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
-
-const MOCK_COURSES = [
-  {
-    id: '1',
-    name: 'Programación Orientada a Objetos',
-    instructor: 'Juan Pérez',
-    students: 45,
-    progress: 75,
-    type: 'Virtual',
-    status: 'Activo',
-  },
-  {
-    id: '2',
-    name: 'Diseño de Patrones de Software',
-    instructor: 'María González',
-    students: 38,
-    progress: 60,
-    type: 'Híbrido',
-    status: 'Activo',
-  },
-  {
-    id: '3',
-    name: 'Base de Datos Avanzadas',
-    instructor: 'Carlos Ramírez',
-    students: 52,
-    progress: 45,
-    type: 'Presencial',
-    status: 'Activo',
-  },
-  {
-    id: '4',
-    name: 'Desarrollo Web Moderno',
-    instructor: 'Laura Martínez',
-    students: 60,
-    progress: 30,
-    type: 'Virtual',
-    status: 'Activo',
-  },
-]
 
 interface CoursesListViewProps {
   role: 'student' | 'professor' | 'admin'
@@ -53,23 +15,26 @@ interface CoursesListViewProps {
 }
 
 export default function CoursesListView({ role, onSelectCourse }: CoursesListViewProps) {
-  const [selectedFilter, setSelectedFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [courses, setCourses] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [cloningId, setCloningId] = useState<string | null>(null)
 
-  // Cargar cursos desde la API
   const loadCourses = async () => {
     setLoading(true)
     try {
       const response = await fetch(`${API_URL}/cursos`)
+      if (!response.ok) throw new Error('Error al cargar cursos')
       const data = await response.json()
       setCourses(data)
     } catch (error) {
       console.error('Error loading courses:', error)
-      // Fallback a datos mock si falla
-      setCourses(MOCK_COURSES as any)
+      toast({
+        title: "Error de conexión",
+        description: "No se pudieron cargar los cursos",
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }
@@ -79,13 +44,47 @@ export default function CoursesListView({ role, onSelectCourse }: CoursesListVie
     loadCourses()
   }, [])
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          course.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    if (selectedFilter === 'all') return matchesSearch
-    const courseType = (course.tipoCurso || course.tipo_curso || course.type || '').toLowerCase()
-    return matchesSearch && courseType === selectedFilter.toLowerCase()
-  })
+  const handleCourseCreated = () => {
+    loadCourses()
+    toast({
+      title: "Curso creado",
+      description: "El curso se creó exitosamente usando el patrón Builder"
+    })
+  }
+
+  // Patrón Prototype – clonar curso
+  const handleClone = async (courseId: string) => {
+    setCloningId(courseId)
+    try {
+      const response = await fetch(`${API_URL}/cursos/${courseId}/clonar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.message || 'Error al clonar el curso')
+      }
+
+      toast({
+        title: "Curso clonado",
+        description: "Se creó una copia perfecta usando el patrón Prototype"
+      })
+      loadCourses()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      })
+    } finally {
+      setCloningId(null)
+    }
+  }
+
+  const filteredCourses = courses.filter(course =>
+    course.nombre?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -97,6 +96,7 @@ export default function CoursesListView({ role, onSelectCourse }: CoursesListVie
             {role === 'student' ? 'Tus cursos inscritos' : 'Gestión de cursos'}
           </p>
         </div>
+
         {role !== 'student' && (
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
@@ -107,116 +107,85 @@ export default function CoursesListView({ role, onSelectCourse }: CoursesListVie
         )}
       </div>
 
-      {/* Filters */}
-      <div className="mb-6 flex gap-4 items-center flex-wrap">
-        <div className="flex-1 min-w-64">
-          <input
-            type="text"
-            placeholder="Buscar cursos..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div className="flex gap-2">
-          {['all', 'Virtual', 'Híbrido', 'Presencial'].map((filter) => (
-            <Button
-              key={filter}
-              onClick={() => setSelectedFilter(filter)}
-              className={`${
-                selectedFilter === filter
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-            >
-              {filter === 'all' ? 'Todos' : filter}
-            </Button>
-          ))}
-        </div>
+      {/* Búsqueda */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Buscar curso..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full max-w-md px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+        />
       </div>
 
-      {/* Courses Grid */}
+      {/* Grid de cursos */}
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando cursos...</div>
+        <div className="text-center py-12">Cargando cursos...</div>
       ) : filteredCourses.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No se encontraron cursos</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course) => {
-            const courseName = course.nombre || course.name || 'Sin nombre'
-            const courseType = course.tipoCurso || course.tipo_curso || course.type || 'N/A'
-            const courseStatus = course.estado || course.status || 'N/A'
-
-            return (
-              <Card
-                key={course.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow border-border/50"
-                onClick={() => onSelectCourse(course.id.toString())}
-              >
+          {filteredCourses.map((course) => (
+            <Card
+              key={course.id}
+              className="flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => onSelectCourse(course.id.toString())}
+            >
+              <div>
                 <CardHeader>
                   <div className="flex justify-between items-start mb-2">
-                    <CardTitle className="text-lg">{courseName}</CardTitle>
+                    <CardTitle className="text-lg">{course.nombre || 'Sin nombre'}</CardTitle>
                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded capitalize">
-                      {courseType}
+                      {course.tipoCurso || 'N/A'}
                     </span>
                   </div>
-                  <CardDescription>
-                    {course.instructor || course.descripcion || 'Sin descripción'}
-                  </CardDescription>
+                  <CardDescription>{course.descripcion || 'Sin descripción'}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {course.progress !== undefined && (
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-muted-foreground">Progreso</span>
-                          <span className="font-semibold text-foreground">{course.progress}%</span>
-                        </div>
-                        <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full bg-primary"
-                            style={{ width: `${course.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-4 text-sm pt-2">
-                      <div>
-                        <p className="text-muted-foreground">Duración</p>
-                        <p className="font-semibold text-foreground">{course.duracion || course.duration || 'N/A'}h</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Estado</p>
-                        <p className="font-semibold text-green-600 capitalize">{courseStatus}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSelectCourse(course.id.toString())
-                    }}
-                    className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground"
-                  >
+                  <p className="text-sm text-muted-foreground">
+                    Período: {course.periodoAcademico || '-'}
+                  </p>
+                </CardContent>
+              </div>
+
+              <CardContent className="mt-auto">
+                <div className="flex gap-2">
+                  <Button className="w-full" onClick={(e) => { e.stopPropagation(); onSelectCourse(course.id.toString()) }}>
                     Ver Detalles
                   </Button>
-                </CardContent>
-              </Card>
-            )
-          })}
+
+                  {role !== 'student' && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={cloningId === course.id.toString()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleClone(course.id.toString())
+                      }}
+                    >
+                      {cloningId === course.id.toString() ? 'Clonando...' : 'Clonar'}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Dialog para crear curso con patrón Builder */}
+      {/* Dialog con el Builder */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
-          <DialogTitle className="sr-only">Crear Nuevo Curso</DialogTitle>
-          <CourseBuilderView
-            onClose={() => setIsCreateDialogOpen(false)}
-            onCourseCreated={() => {
-              loadCourses() // Recargar lista de cursos
-            }}
-          />
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="px-6 pt-6 border-b">
+            <DialogTitle>Crear Nuevo Curso – Patrón Builder + Director</DialogTitle>
+          </DialogHeader>
+          <div className="p-6">
+            <CourseBuilderView
+              onClose={() => setIsCreateDialogOpen(false)}
+              onCourseCreated={handleCourseCreated}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
