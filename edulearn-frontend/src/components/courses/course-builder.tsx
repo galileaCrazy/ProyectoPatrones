@@ -4,17 +4,25 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+
 interface CourseBuilderViewProps {
   onClose: () => void
+  onCourseCreated?: () => void
 }
 
-export default function CourseBuilderView({ onClose }: CourseBuilderViewProps) {
+export default function CourseBuilderView({ onClose, onCourseCreated }: CourseBuilderViewProps) {
   const [step, setStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [courseData, setCourseData] = useState({
     name: '',
     description: '',
-    type: 'Virtual',
+    type: 'presencial', // presencial, virtual, hibrido
     period: '2025-1',
+    professorId: 1,
+    startDate: '',
+    endDate: '',
   })
 
   const handleNext = () => {
@@ -25,9 +33,53 @@ export default function CourseBuilderView({ onClose }: CourseBuilderViewProps) {
     if (step > 1) setStep(step - 1)
   }
 
-  const handleCreate = () => {
-    alert('Curso creado: ' + courseData.name)
-    onClose()
+  // PATRÓN BUILDER: Construcción del curso usando el backend
+  const handleCreate = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Determinar el tipo de curso y endpoint del Director
+      let endpoint = ""
+      let body: any = { nombre: courseData.name }
+
+      // El Director selecciona la configuración según el tipo
+      if (courseData.type === 'presencial') {
+        endpoint = "/cursos/builder/regular"
+        body.periodoAcademico = courseData.period
+      } else if (courseData.type === 'virtual') {
+        endpoint = "/cursos/builder/intensivo"
+        body.profesorId = courseData.professorId
+      } else {
+        endpoint = "/cursos/builder/certificacion"
+        body.profesorId = courseData.professorId
+        body.periodoAcademico = courseData.period
+      }
+
+      // Llamar al patrón Builder en el backend
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Error response:', errorText)
+        throw new Error(`Error al crear el curso: ${response.status} - ${errorText || response.statusText}`)
+      }
+
+      const createdCourse = await response.json()
+      console.log('Curso creado:', createdCourse)
+
+      onCourseCreated?.()
+      onClose()
+    } catch (err: any) {
+      setError(err.message)
+      console.error('Error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -84,9 +136,9 @@ export default function CourseBuilderView({ onClose }: CourseBuilderViewProps) {
                     onChange={(e) => setCourseData({ ...courseData, type: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option>Virtual</option>
-                    <option>Presencial</option>
-                    <option>Híbrido</option>
+                    <option value="presencial">Presencial</option>
+                    <option value="virtual">Virtual</option>
+                    <option value="hibrido">Híbrido</option>
                   </select>
                 </div>
                 <div>
@@ -177,19 +229,28 @@ export default function CourseBuilderView({ onClose }: CourseBuilderViewProps) {
         </CardContent>
       </Card>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-4 rounded-lg bg-destructive/10 border border-destructive text-destructive">
+          {error}
+        </div>
+      )}
+
       {/* Buttons */}
       <div className="flex justify-between gap-4">
         <Button
           onClick={step === 1 ? onClose : handlePrev}
           className="bg-muted hover:bg-muted/80 text-foreground"
+          disabled={loading}
         >
           {step === 1 ? 'Cancelar' : 'Anterior'}
         </Button>
         <Button
           onClick={step === 5 ? handleCreate : handleNext}
           className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          disabled={loading}
         >
-          {step === 5 ? 'Crear Curso' : 'Siguiente'}
+          {loading ? 'Creando...' : step === 5 ? 'Crear Curso' : 'Siguiente'}
         </Button>
       </div>
     </div>

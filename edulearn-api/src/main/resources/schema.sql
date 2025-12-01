@@ -52,15 +52,16 @@ CREATE TABLE IF NOT EXISTS contenidos_educativos (
 
 -- ========== PATRONES BUILDER Y PROTOTYPE ==========
 -- Tabla para cursos (usada por Builder y Prototype)
+-- NOTA: Si la tabla ya existe con más campos, no se sobrescribirá
 CREATE TABLE IF NOT EXISTS cursos (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    codigo VARCHAR(50),
+    codigo VARCHAR(50) UNIQUE,
     nombre VARCHAR(255) NOT NULL,
     descripcion TEXT,
     tipo_curso VARCHAR(50),
-    estado VARCHAR(50) DEFAULT 'BORRADOR',
-    profesor_titular_id INT,
-    periodo_academico VARCHAR(50),
+    estado VARCHAR(50) DEFAULT 'ACTIVO',
+    profesor_titular_id INT NULL,
+    periodo_academico VARCHAR(50) NULL,
     duracion INT,
     fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_tipo_curso (tipo_curso),
