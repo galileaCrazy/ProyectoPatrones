@@ -7,7 +7,7 @@ import com.edulearn.repository.CursoRepository;
 import com.edulearn.repository.InscripcionRepository;
 import com.edulearn.repository.UsuarioRepository;
 // Importar clases de patrones
-import com.edulearn.patterns.abstractfactory.*;
+import com.edulearn.patterns.creational.abstractfactory.*;
 import com.edulearn.patterns.builder.CursoBuilder;
 import com.edulearn.patterns.prototype.CursoPrototype;
 import com.edulearn.patterns.singleton.ConfiguracionSistema;
