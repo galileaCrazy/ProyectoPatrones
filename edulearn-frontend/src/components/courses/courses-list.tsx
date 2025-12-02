@@ -48,7 +48,7 @@ export default function CoursesListView({ role, onSelectCourse }: CoursesListVie
     loadCourses()
     toast({
       title: "Curso creado",
-      description: "El curso se creó exitosamente usando el patrón Builder"
+      description: "El curso se creó exitosamente"
     })
   }
 
@@ -68,7 +68,7 @@ export default function CoursesListView({ role, onSelectCourse }: CoursesListVie
 
       toast({
         title: "Curso clonado",
-        description: "Se creó una copia perfecta usando el patrón Prototype"
+        description: "Se creó una copia perfecta del curso"
       })
       loadCourses()
     } catch (error: any) {
@@ -178,12 +178,15 @@ export default function CoursesListView({ role, onSelectCourse }: CoursesListVie
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
           <DialogHeader className="px-6 pt-6 border-b">
-            <DialogTitle>Crear Nuevo Curso – Patrón Builder + Director</DialogTitle>
+            <DialogTitle>Crear Nuevo Curso</DialogTitle>
           </DialogHeader>
           <div className="p-6">
             <CourseBuilderView
               onClose={() => setIsCreateDialogOpen(false)}
               onCourseCreated={handleCourseCreated}
+              userRole="admin"
+              userId="1"
+              userName="Admin"
             />
           </div>
         </DialogContent>
