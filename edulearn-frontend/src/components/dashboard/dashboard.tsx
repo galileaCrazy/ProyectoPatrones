@@ -9,6 +9,7 @@ import CourseDetailView from '@/components/courses/course-detail'
 import StudentsManagementView from '@/components/students/students-management'
 import EvaluationsView from '@/components/evaluations/evaluations-list'
 import EvaluationGradeView from '@/components/evaluations/evaluation-grade'
+import { EvaluationManager } from '@/components/evaluations'
 import ReportsView from '@/components/reports/reports-generator'
 import CalendarView from '@/components/calendar/calendar'
 import ForumsView from '@/components/forums/forums'
@@ -50,7 +51,7 @@ export default function Dashboard({ role, onLogout }: DashboardProps) {
       case 'students':
         return <StudentsManagementView />
       case 'evaluations':
-        return <EvaluationsView role={role} onGrade={() => setCurrentView('grade-evaluation')} />
+        return <EvaluationManager role={role} />
       case 'grade-evaluation':
         return <EvaluationGradeView />
       case 'reports':
