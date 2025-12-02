@@ -8,11 +8,13 @@ import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 public class CorsConfig {
+
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOriginPattern("*");
+        config.addAllowedOrigin("http://localhost:3000");  // solo tu frontend
+        // config.addAllowedOriginPattern("*"); // quita esta línea
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 

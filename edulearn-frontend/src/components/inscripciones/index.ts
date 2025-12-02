@@ -1,0 +1,6 @@
+export { default as TemplateMethodInscripcion } from './template-method-inscripcion'
+export { default as TemplateMethodManager } from './template-method-manager'
+export { default as InscripcionesPage } from './inscripciones-page'
+export { default as InscripcionWidget } from './inscripcion-widget'
+export { default as ResultadoViewer } from './resultado-viewer'
+export { default as StudentInscripcionView } from './student-inscripcion-view'
