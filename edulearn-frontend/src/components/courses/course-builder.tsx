@@ -220,7 +220,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
     // Validar paso 2: debe haber al menos un módulo
     if (step === 2) {
       if (modulos.length === 0) {
-        alert('⚠️ Debes agregar al menos un módulo para continuar')
+        alert('Debes agregar al menos un módulo para continuar')
         return
       }
     }
@@ -263,7 +263,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
   // Funciones para manejar materiales (Paso 3 - trabaja con módulos existentes)
   const agregarMaterial = () => {
     if (moduloSeleccionadoIndex === -1) {
-      alert('⚠️ Debes seleccionar un módulo del dropdown antes de agregar un material')
+      alert('Debes seleccionar un módulo del dropdown antes de agregar un material')
       return
     }
 
@@ -296,7 +296,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
   // Funciones para manejar evaluaciones (Paso 3 - trabaja con módulos existentes)
   const agregarEvaluacion = () => {
     if (moduloSeleccionadoIndex === -1) {
-      alert('⚠️ Debes seleccionar un módulo del dropdown antes de agregar una evaluación')
+      alert('Debes seleccionar un módulo del dropdown antes de agregar una evaluación')
       return
     }
 
@@ -370,7 +370,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
       if (!response.ok) {
         const errorText = await response.text()
         console.error('❌ Error HTTP:', response.status, errorText)
-        alert(`❌ Error HTTP ${response.status}: ${errorText}`)
+        alert(`Error HTTP ${response.status}: ${errorText}`)
         setIsCreating(false)
         return
       }
@@ -379,7 +379,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
       console.log('📊 Resultado:', result)
 
       if (result.exito) {
-        alert(`✅ Curso creado exitosamente!\n\n` +
+        alert(`Curso creado exitosamente!\n\n` +
               `ID: ${result.cursoId}\n` +
               `Código: ${result.codigo}\n` +
               `Tipo: ${result.tipoCurso}\n` +
@@ -390,11 +390,11 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
         onClose()
       } else {
         console.error('❌ Error del servidor:', result.mensaje)
-        alert('❌ Error al crear el curso: ' + result.mensaje)
+        alert('Error al crear el curso: ' + result.mensaje)
       }
     } catch (error) {
       console.error('❌ Error completo:', error)
-      alert('❌ Error al comunicarse con el servidor: ' + error)
+      alert('Error al comunicarse con el servidor: ' + error)
     } finally {
       setIsCreating(false)
     }
@@ -417,10 +417,10 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
       <Card className="mb-8 border-border/50">
         <CardHeader>
           <CardTitle>
-            {step === 1 && '📋 Información Básica y Asignación'}
-            {step === 2 && '📚 Agregar Módulos'}
-            {step === 3 && '📝 Configurar Evaluaciones'}
-            {step === 4 && '✅ Revisión y Confirmación'}
+            {step === 1 && 'Información Básica y Asignación'}
+            {step === 2 && 'Agregar Módulos'}
+            {step === 3 && 'Configurar Evaluaciones'}
+            {step === 4 && 'Revisión y Confirmación'}
           </CardTitle>
           <CardDescription>
             {step === 1 && 'Completa todos los campos requeridos para continuar'}
@@ -482,7 +482,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
                 {errors.type && <p className="text-xs text-red-500 mt-1">{errors.type}</p>}
                 {courseData.type && (
                   <p className="text-xs text-green-600 mt-1">
-                    ✅ Cupo máximo: {limiteCupos[courseData.type]} estudiantes (Chain of Responsibility)
+                    Cupo máximo: {limiteCupos[courseData.type]} estudiantes (Chain of Responsibility)
                   </p>
                 )}
               </div>
@@ -519,7 +519,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
                 {errors.period && <p className="text-xs text-red-500 mt-1">{errors.period}</p>}
                 {periodosValidos.length > 0 && courseData.period && (
                   <p className="text-xs text-green-600 mt-1">
-                    ✅ Validado con Chain of Responsibility - Hoy: {new Date().toLocaleDateString('es-ES')}
+                    Validado con Chain of Responsibility - Hoy: {new Date().toLocaleDateString('es-ES')}
                   </p>
                 )}
               </div>
@@ -573,7 +573,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
                     {errors.professorId && <p className="text-xs text-red-500 mt-1">{errors.professorId}</p>}
                     {profesores.length > 0 && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        ✅ {profesores.length} profesores disponibles desde la BD
+                        {profesores.length} profesores disponibles desde la BD
                       </p>
                     )}
                   </>
@@ -584,7 +584,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
               {Object.keys(errors).length > 0 && (
                 <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                   <p className="text-sm text-red-800 dark:text-red-200 font-medium">
-                    ⚠️ Por favor completa todos los campos requeridos antes de continuar
+                    Por favor completa todos los campos requeridos antes de continuar
                   </p>
                 </div>
               )}
@@ -610,7 +610,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
             <div className="space-y-4">
               <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 mb-4">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-2">
-                  📚 Agregar Módulos al Curso
+                  Agregar Módulos al Curso
                 </p>
                 <p className="text-xs text-blue-600 dark:text-blue-300">
                   Los módulos organizan el contenido del curso. Puedes agregar materiales y evaluaciones a cada módulo en el siguiente paso.
@@ -694,7 +694,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
             <div className="space-y-4">
               <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 mb-4">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-2">
-                  📝 Agregar Contenido a los Módulos
+                  Agregar Contenido a los Módulos
                 </p>
                 <p className="text-xs text-blue-600 dark:text-blue-300">
                   Selecciona un módulo del dropdown y agrega materiales o evaluaciones. Los contenidos se crearán usando el patrón <strong>Abstract Factory</strong> según el tipo de curso ({courseData.type}).
@@ -723,7 +723,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
                 </select>
                 {moduloSeleccionadoIndex !== -1 && (
                   <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                    ✅ Módulo seleccionado: <strong>{modulos[moduloSeleccionadoIndex].titulo}</strong>
+                    Módulo seleccionado: <strong>{modulos[moduloSeleccionadoIndex].titulo}</strong>
                   </p>
                 )}
               </div>
@@ -880,7 +880,7 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
             <div className="space-y-4">
               <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 mb-4">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-2">
-                  ✅ Revisión Final
+                  Revisión Final
                 </p>
                 <p className="text-xs text-blue-600 dark:text-blue-300">
                   Revisa la información antes de crear el curso. Se usarán los patrones <strong>Abstract Factory ({courseData.type})</strong> y <strong>Builder</strong> para crear el curso completo.
@@ -936,10 +936,10 @@ export default function CourseBuilderView({ onClose, userRole, userId = '1', use
                       )}
                       <div className="mt-2 flex gap-4 text-xs">
                         <span className="text-green-600 dark:text-green-400">
-                          📄 {modulo.materiales.length} material(es)
+                          {modulo.materiales.length} material(es)
                         </span>
                         <span className="text-purple-600 dark:text-purple-400">
-                          📝 {modulo.evaluaciones.length} evaluación(es)
+                          {modulo.evaluaciones.length} evaluación(es)
                         </span>
                       </div>
 

@@ -113,7 +113,7 @@ export default function CalendarView() {
                   <div key={idx} className="p-3 rounded-lg bg-muted/50 border border-border">
                     <div className="flex gap-2 mb-1">
                       <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                        {event.type === 'clase' ? '📹' : event.type === 'evaluacion' ? '📝' : '📅'}
+                        {event.type === 'clase' ? 'Clase' : event.type === 'evaluacion' ? 'Evaluación' : 'Evento'}
                       </span>
                     </div>
                     <p className="font-medium text-sm text-foreground">{event.title}</p>

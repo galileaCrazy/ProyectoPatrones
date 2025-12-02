@@ -80,16 +80,16 @@ export default function SystemSettings({ userRole }: SystemSettingsProps) {
       })
 
       if (response.ok) {
-        alert(`✅ Configuración actualizada en el Singleton!\nClave: ${clave}`)
+        alert(`Configuración actualizada en el Singleton!\nClave: ${clave}`)
         setEditando(null)
         fetchConfiguraciones()
         fetchStats()
       } else {
-        alert('❌ Error al actualizar configuración')
+        alert('Error al actualizar configuración')
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('❌ Error al comunicarse con el servidor')
+      alert('Error al comunicarse con el servidor')
     } finally {
       setSaving(false)
     }
@@ -102,11 +102,11 @@ export default function SystemSettings({ userRole }: SystemSettingsProps) {
       })
 
       if (response.ok) {
-        alert('✅ Configuraciones recargadas desde la base de datos al Singleton')
+        alert('Configuraciones recargadas desde la base de datos al Singleton')
         fetchConfiguraciones()
         fetchStats()
       } else {
-        alert('❌ Error al recargar configuraciones')
+        alert('Error al recargar configuraciones')
       }
     } catch (error) {
       console.error('Error:', error)
@@ -147,54 +147,9 @@ export default function SystemSettings({ userRole }: SystemSettingsProps) {
           onClick={handleReload}
           className="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
-          🔄 Recargar desde BD
+          Recargar desde BD
         </Button>
       </div>
-
-      {/* Singleton Info Card */}
-      <Card className="mb-6 border-primary/20 bg-primary/5">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <div className="text-4xl">🎯</div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-foreground mb-2">
-                Patrón Singleton en Acción
-              </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                El sistema usa el patrón <strong>Singleton</strong> para garantizar una única instancia del gestor
-                de configuraciones en toda la aplicación. Todas las configuraciones se mantienen en caché en memoria
-                para un acceso rápido, y se sincronizan automáticamente con la base de datos.
-              </p>
-              <div className="grid grid-cols-4 gap-4 mt-4">
-                <div className="bg-background border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Instancias</p>
-                  <p className="text-2xl font-bold text-primary">1</p>
-                  <p className="text-xs text-muted-foreground mt-1">Única instancia</p>
-                </div>
-                <div className="bg-background border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">En Caché</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {stats?.cantidadEnCache || 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">Configuraciones</p>
-                </div>
-                <div className="bg-background border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Accesos</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {stats?.totalAccesos || 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">Al Singleton</p>
-                </div>
-                <div className="bg-background border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Thread-Safe</p>
-                  <p className="text-2xl font-bold text-purple-600">✓</p>
-                  <p className="text-xs text-muted-foreground mt-1">DCL Pattern</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Configurations List */}
       {loading ? (
@@ -266,7 +221,7 @@ export default function SystemSettings({ userRole }: SystemSettingsProps) {
                         onClick={() => handleEdit(config.clave, configuraciones[config.clave] || config.valor)}
                         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                       >
-                        ✏️ Editar
+                        Editar
                       </Button>
                     </div>
                   )}

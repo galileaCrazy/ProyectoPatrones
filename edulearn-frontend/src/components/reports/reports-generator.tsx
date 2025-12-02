@@ -55,15 +55,15 @@ export default function ReportsView() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(`✅ Reporte generado con patrón Bridge!\n\nID: ${data.reporteId}\nTipo: ${data.tipoReporte}\nFormato: ${data.formato}`)
+        alert(`Reporte generado con patrón Bridge!\n\nID: ${data.reporteId}\nTipo: ${data.tipoReporte}\nFormato: ${data.formato}`)
         setPreviewContent(data.contenido)
         fetchReportes()
       } else {
-        alert('❌ Error al generar reporte')
+        alert('Error al generar reporte')
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('❌ Error al comunicarse con el servidor')
+      alert('Error al comunicarse con el servidor')
     } finally {
       setGenerating(false)
     }
@@ -72,14 +72,14 @@ export default function ReportsView() {
   const getFormatIcon = (formato: string) => {
     switch (formato.toUpperCase()) {
       case 'PDF':
-        return '📄'
+        return ''
       case 'EXCEL':
       case 'XLS':
-        return '📊'
+        return ''
       case 'HTML':
-        return '🌐'
+        return ''
       default:
-        return '📁'
+        return ''
     }
   }
 
@@ -136,54 +136,7 @@ export default function ReportsView() {
         </p>
       </div>
 
-      <Card className="mb-6 border-primary/20 bg-primary/5">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <div className="text-4xl">🌉</div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-foreground mb-2">
-                Patrón Bridge en Acción
-              </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                El patrón <strong>Bridge</strong> separa la abstracción (tipo de reporte) de su implementación
-                (formato de salida). Esto permite que ambos varíen independientemente.
-              </p>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="bg-background border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-1">Abstracción (Tipos)</p>
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded dark:bg-blue-900 dark:text-blue-200">
-                      👥 Estudiantes
-                    </span>
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded dark:bg-green-900 dark:text-green-200">
-                      📚 Cursos
-                    </span>
-                    <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded dark:bg-purple-900 dark:text-purple-200">
-                      📝 Calificaciones
-                    </span>
-                  </div>
-                </div>
-                <div className="bg-background border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-1">Implementación (Formatos)</p>
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded dark:bg-red-900 dark:text-red-200">
-                      📄 PDF
-                    </span>
-                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded dark:bg-yellow-900 dark:text-yellow-200">
-                      📊 Excel
-                    </span>
-                    <span className="text-xs bg-cyan-100 text-cyan-800 px-2 py-1 rounded dark:bg-cyan-900 dark:text-cyan-200">
-                      🌐 HTML
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle>Crear Nuevo Reporte</CardTitle>
@@ -194,9 +147,9 @@ export default function ReportsView() {
               <label className="block text-sm font-medium text-foreground mb-3">Tipo de Reporte</label>
               <div className="space-y-2">
                 {[
-                  { id: 'ESTUDIANTES', name: '👥 Estudiantes' },
-                  { id: 'CURSOS', name: '📚 Cursos' },
-                  { id: 'CALIFICACIONES', name: '📝 Calificaciones' },
+                  { id: 'ESTUDIANTES', name: 'Estudiantes' },
+                  { id: 'CURSOS', name: 'Cursos' },
+                  { id: 'CALIFICACIONES', name: 'Calificaciones' },
                 ].map((type) => (
                   <label key={type.id} className="flex items-center gap-3 p-3 rounded-lg border border-input cursor-pointer hover:bg-muted transition-colors">
                     <input
@@ -217,9 +170,9 @@ export default function ReportsView() {
               <label className="block text-sm font-medium text-foreground mb-3">Formato de Salida</label>
               <div className="flex gap-4">
                 {[
-                  { id: 'PDF', icon: '📄' },
-                  { id: 'EXCEL', icon: '📊' },
-                  { id: 'HTML', icon: '🌐' }
+                  { id: 'PDF', icon: '' },
+                  { id: 'EXCEL', icon: '' },
+                  { id: 'HTML', icon: '' }
                 ].map((f) => (
                   <label key={f.id} className="flex-1 flex flex-col items-center gap-2 p-4 rounded-lg border border-input cursor-pointer hover:bg-muted transition-colors">
                     <input
@@ -242,7 +195,7 @@ export default function ReportsView() {
               disabled={generating}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              {generating ? 'Generando...' : '🌉 Generar con Bridge'}
+              {generating ? 'Generando...' : 'Generar Reporte'}
             </Button>
           </CardContent>
         </Card>
@@ -303,7 +256,7 @@ export default function ReportsView() {
                       onClick={() => setPreviewContent(reporte.contenido)}
                       className="bg-primary hover:bg-primary/90 text-primary-foreground text-sm"
                     >
-                      👁️ Ver
+                      Ver
                     </Button>
                     <Button
                       onClick={() => handleDownloadReport(reporte.id)}

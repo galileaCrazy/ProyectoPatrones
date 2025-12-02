@@ -60,7 +60,7 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
       })
 
       if (response.ok) {
-        alert('✅ Notificación enviada exitosamente usando Factory Method!')
+        alert('Notificación enviada exitosamente usando Factory Method!')
         setFormData({
           tipo: 'EMAIL',
           destinatario: '',
@@ -70,11 +70,11 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
         setShowForm(false)
         fetchNotifications()
       } else {
-        alert('❌ Error al enviar notificación')
+        alert('Error al enviar notificación')
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('❌ Error al comunicarse con el servidor')
+      alert('Error al comunicarse con el servidor')
     } finally {
       setSending(false)
     }
@@ -87,10 +87,10 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
       })
 
       if (response.ok) {
-        alert('✅ Reintento de envío exitoso')
+        alert('Reintento de envío exitoso')
         fetchNotifications()
       } else {
-        alert('❌ Error al reintentar')
+        alert('Error al reintentar')
       }
     } catch (error) {
       console.error('Error:', error)
@@ -100,13 +100,13 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
   const getNotificationIcon = (tipo: string) => {
     switch (tipo.toUpperCase()) {
       case 'EMAIL':
-        return '📧'
+        return ''
       case 'SMS':
-        return '📱'
+        return ''
       case 'PUSH':
-        return '🔔'
+        return ''
       default:
-        return '📨'
+        return ''
     }
   }
 
@@ -147,35 +147,6 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
       </div>
 
       {/* Factory Method Info Card */}
-      <Card className="mb-6 border-primary/20 bg-primary/5">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <div className="text-4xl">🏭</div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-foreground mb-2">
-                Patrón Factory Method en Acción
-              </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Este sistema usa el patrón <strong>Factory Method</strong> para crear diferentes tipos de notificaciones
-                (Email, SMS, Push) sin que el código cliente conozca las clases concretas. La fábrica decide qué tipo
-                de notificación instanciar según el parámetro proporcionado.
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded dark:bg-blue-900 dark:text-blue-200">
-                  📧 Email
-                </span>
-                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded dark:bg-green-900 dark:text-green-200">
-                  📱 SMS
-                </span>
-                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded dark:bg-purple-900 dark:text-purple-200">
-                  🔔 Push
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Form */}
       {showForm && (
         <Card className="mb-6">
@@ -196,9 +167,9 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
                   onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="EMAIL">📧 Email</option>
-                  <option value="SMS">📱 SMS</option>
-                  <option value="PUSH">🔔 Push Notification</option>
+                  <option value="EMAIL">Email</option>
+                  <option value="SMS">SMS</option>
+                  <option value="PUSH">Push Notification</option>
                 </select>
               </div>
 
@@ -302,7 +273,7 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
                               onClick={() => handleRetry(notif.id)}
                               className="h-8 text-xs"
                             >
-                              🔄 Reintentar
+                              Reintentar
                             </Button>
                           )}
                         </div>
