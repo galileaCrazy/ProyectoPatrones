@@ -1,9 +1,20 @@
 "use client"
-import { ContentTreeNode } from "./content-tree-node"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Book, CheckCircle2, Circle } from "lucide-react"
-import { ModuleDetailView } from "./module-detail-view"
+
 import { useState } from "react"
+import { ContentTreeNode } from "./content-tree-node"
+import { ModuleEditor } from "./module-editor"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Book, CheckCircle2, Circle, Lock } from "lucide-react"
+
+interface ContentItem {
+  id: string
+  name: string
+  type: "VIDEO" | "PDF" | "LECTURE" | "TASK" | "QUIZ" | "SUPPLEMENT" | "FORM" | "PRACTICE"
+  duration: number
+  file?: string
+  isCompleted?: boolean
+  size?: string // Para materiales grandes (ej: "850 MB")
+}
 
 interface TreeNode {
   id: string
@@ -15,68 +26,70 @@ interface TreeNode {
   totalItems?: number
   estimatedTime?: number
   description?: string
-  content?: {
-    id: string
-    name: string
-    type: "video" | "lecture" | "task" | "quiz" | "supplement"
-    duration: number
-    isCompleted?: boolean
-  }[]
+  content?: ContentItem[]
 }
 
 interface CourseContentTreeProps {
   courseId: string
-  onNodeSelect?: (node: TreeNode) => void
+  role: "ESTUDIANTE" | "DOCENTE" | "ADMIN"
 }
 
-export function CourseContentTree({ courseId, onNodeSelect }: CourseContentTreeProps) {
+export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
+  // ═══════════════════════════════════════════════════════════════
+  // ESTADO LOCAL: Control de módulo en edición
+  // ═══════════════════════════════════════════════════════════════
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null)
   const [selectedModule, setSelectedModule] = useState<TreeNode | null>(null)
 
+  // Mock data del contenido del curso
   const courseContent: TreeNode[] = [
     {
       id: "m1",
-      name: "Introducción a POO",
+      name: "Patrón Proxy - Lazy Loading",
       type: "module",
-      status: "completed",
-      completedItems: 3,
-      totalItems: 3,
-      estimatedTime: 3,
+      status: "in-progress",
+      completedItems: 2,
+      totalItems: 5,
+      estimatedTime: 4,
       description:
-        "En este módulo aprenderemos los conceptos fundamentales de la Programación Orientada a Objetos (POO), incluyendo qué es una clase, cómo funcionan los objetos y los pilares principales. Este módulo proporciona la base teórica necesaria para entender el resto del curso.",
+        "Implementación del patrón Proxy con carga diferida y control de acceso. Aprende a optimizar recursos cargando contenido solo cuando es necesario.",
       content: [
-        { id: "c1", name: "Introducción al Programa", type: "video", duration: 5, isCompleted: true },
-        { id: "c2", name: "¿Qué es la POO?", type: "lecture", duration: 3, isCompleted: true },
+        {
+          id: "c1",
+          name: "Introducción al Patrón Proxy",
+          type: "VIDEO",
+          duration: 15,
+          size: "450 MB",
+          isCompleted: true,
+        },
+        {
+          id: "c2",
+          name: "Documentación del Patrón Proxy",
+          type: "PDF",
+          duration: 10,
+          size: "850 MB",
+          file: "/materiales/proxy-pattern.pdf",
+          isCompleted: false,
+        },
         {
           id: "c3",
-          name: "¿Qué hace un Especialista en Asistencia de TI?",
-          type: "video",
-          duration: 2,
+          name: "Lazy Loading en UI",
+          type: "LECTURE",
+          duration: 8,
           isCompleted: true,
         },
-        { id: "c4", name: "Introducción al Curso", type: "lecture", duration: 1, isCompleted: true },
         {
-          id: "c5",
-          name: "Empieza con tu certificado de Asistencia de TI de Google",
-          type: "task",
-          duration: 2,
-          isCompleted: true,
+          id: "c4",
+          name: "Quiz: Patrón Proxy",
+          type: "QUIZ",
+          duration: 5,
+          isCompleted: false,
         },
-        { id: "c6", name: "Del ábaco al motor analítico", type: "video", duration: 5, isCompleted: true },
-        {
-          id: "c7",
-          name: "La ruta de acceso a las computadoras modernas",
-          type: "lecture",
-          duration: 10,
-          isCompleted: true,
-        },
-        { id: "c8", name: "Kevin: Su ruta de acceso", type: "video", duration: 1, isCompleted: true },
-        { id: "c9", name: "Lenguaje informático", type: "quiz", duration: 2, isCompleted: true },
-        { id: "c10", name: "Material complementario", type: "supplement", duration: 5, isCompleted: true },
       ],
       children: [
         {
           id: "s1",
-          name: "Conceptos Fundamentales",
+          name: "Conceptos Teóricos",
           type: "submodule",
           status: "completed",
           completedItems: 2,
@@ -84,40 +97,37 @@ export function CourseContentTree({ courseId, onNodeSelect }: CourseContentTreeP
           children: [
             {
               id: "l1",
-              name: "Definición de POO",
+              name: "¿Qué es el Patrón Proxy?",
               type: "lesson",
               status: "completed",
-              children: [
-                { id: "a1", name: "Lectura: Introducción a POO", type: "activity", status: "completed" },
-                { id: "a2", name: "Video: Conceptos básicos", type: "activity", status: "completed" },
-              ],
             },
             {
               id: "l2",
-              name: "Pilares de POO",
+              name: "Tipos de Proxy",
               type: "lesson",
               status: "completed",
-              children: [
-                { id: "a3", name: "Lectura: Los 4 pilares", type: "activity", status: "completed" },
-                { id: "a4", name: "Quiz: Pilares de POO", type: "activity", status: "completed" },
-              ],
             },
           ],
         },
         {
           id: "s2",
-          name: "Primeras Clases",
+          name: "Implementación Práctica",
           type: "submodule",
-          status: "completed",
+          status: "in-progress",
           completedItems: 1,
-          totalItems: 1,
+          totalItems: 2,
           children: [
             {
               id: "l3",
-              name: "Creando tu Primera Clase",
+              name: "Código del Backend",
               type: "lesson",
               status: "completed",
-              children: [{ id: "a5", name: "Ejercicio práctico", type: "activity", status: "completed" }],
+            },
+            {
+              id: "l4",
+              name: "Integración con Frontend",
+              type: "lesson",
+              status: "in-progress",
             },
           ],
         },
@@ -125,68 +135,51 @@ export function CourseContentTree({ courseId, onNodeSelect }: CourseContentTreeP
     },
     {
       id: "m2",
-      name: "Clases y Objetos",
+      name: "Patrón Strategy",
       type: "module",
-      status: "in-progress",
+      status: "completed",
       completedItems: 3,
-      totalItems: 4,
-      children: [
+      totalItems: 3,
+      estimatedTime: 3,
+      description: "Implementación del patrón Strategy para diferentes algoritmos de evaluación.",
+      content: [
         {
-          id: "s3",
-          name: "Atributos y Métodos",
-          type: "submodule",
-          status: "in-progress",
-          completedItems: 2,
-          totalItems: 3,
-          children: [
-            {
-              id: "l4",
-              name: "Definiendo Atributos",
-              type: "lesson",
-              status: "completed",
-              children: [
-                { id: "a6", name: "Lectura: Propiedades de clases", type: "activity", status: "completed" },
-                { id: "a7", name: "Ejercicio: Crear atributos", type: "activity", status: "completed" },
-              ],
-            },
-            {
-              id: "l5",
-              name: "Métodos de Clase",
-              type: "lesson",
-              status: "in-progress",
-              children: [
-                { id: "a8", name: "Lectura: Introducción a métodos", type: "activity", status: "completed" },
-                { id: "a9", name: "Video: Métodos avanzados", type: "activity", status: "in-progress" },
-              ],
-            },
-            {
-              id: "l6",
-              name: "Constructores y Destructores",
-              type: "lesson",
-              status: "locked",
-              children: [{ id: "a10", name: "Lectura: Constructores", type: "activity", status: "locked" }],
-            },
-          ],
+          id: "c5",
+          name: "Introducción al Strategy",
+          type: "VIDEO",
+          duration: 12,
+          isCompleted: true,
+        },
+        {
+          id: "c6",
+          name: "Implementación en Java",
+          type: "LECTURE",
+          duration: 15,
+          isCompleted: true,
         },
       ],
+      children: [],
     },
     {
       id: "m3",
-      name: "Herencia y Polimorfismo",
+      name: "Patrón Chain of Responsibility",
       type: "module",
       status: "locked",
       completedItems: 0,
-      totalItems: 3,
+      totalItems: 4,
+      estimatedTime: 5,
+      description: "Cadena de validaciones para procesos de inscripción.",
+      content: [],
       children: [
         {
-          id: "s4",
-          name: "Concepto de Herencia",
+          id: "s3",
+          name: "Conceptos",
           type: "submodule",
           status: "locked",
           children: [
             {
-              id: "l7",
-              name: "Introducción a Herencia",
+              id: "l5",
+              name: "Introducción",
               type: "lesson",
               status: "locked",
             },
@@ -196,50 +189,126 @@ export function CourseContentTree({ courseId, onNodeSelect }: CourseContentTreeP
     },
   ]
 
-  if (selectedModule && selectedModule.content) {
-    return (
-      <ModuleDetailView
-        module={{
-          id: selectedModule.id,
-          title: selectedModule.name,
-          moduleNumber: Number.parseInt(selectedModule.id.replace("m", "")),
-          estimatedTime: selectedModule.estimatedTime || 3,
-          description: selectedModule.description || "",
-          content: selectedModule.content || [],
-        }}
-        onBack={() => setSelectedModule(null)}
-      />
-    )
+  // ═══════════════════════════════════════════════════════════════
+  // FUNCIÓN: Buscar módulo por ID
+  // ═══════════════════════════════════════════════════════════════
+  const getModuleById = (id: string): TreeNode | undefined => {
+    return courseContent.find((m) => m.id === id)
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // FUNCIÓN: Manejar solicitud de edición de módulo
+  // Solo se activa si el rol es DOCENTE o ADMIN
+  // ═══════════════════════════════════════════════════════════════
+  const handleEditModule = (moduleId: string) => {
+    console.log("📝 [CourseContentTree] Solicitud de edición del módulo:", moduleId)
+    console.log("👤 [CourseContentTree] Rol del usuario:", role)
+
+    if (role === "DOCENTE" || role === "ADMIN") {
+      setEditingModuleId(moduleId)
+      setSelectedModule(null) // Cerrar vista de detalle si estaba abierta
+      console.log("✅ [CourseContentTree] Editor de módulo activado")
+    } else {
+      console.log("❌ [CourseContentTree] Acceso denegado. Solo DOCENTE/ADMIN pueden editar")
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // FUNCIÓN: Guardar cambios del módulo
+  // Placeholder - En producción, llamaría a la API
+  // ═══════════════════════════════════════════════════════════════
+  const handleSaveModule = (data: any) => {
+    console.log("💾 [CourseContentTree] Guardando cambios del módulo:", data)
+
+    // Aquí iría la lógica para actualizar el backend
+    // Por ahora, solo cerramos el editor
+    setEditingModuleId(null)
+
+    console.log("✅ [CourseContentTree] Cambios guardados (simulado)")
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // RENDERIZADO CONDICIONAL: Editor de Módulo
+  // Solo se muestra si editingModuleId tiene un valor
+  // ═══════════════════════════════════════════════════════════════
+  if (editingModuleId && (role === "DOCENTE" || role === "ADMIN")) {
+    const moduleToEdit = getModuleById(editingModuleId)
+
+    if (moduleToEdit) {
+      console.log("🎨 [CourseContentTree] Renderizando ModuleEditor para:", moduleToEdit.name)
+
+      return (
+        <ModuleEditor
+          moduleId={moduleToEdit.id}
+          moduleName={moduleToEdit.name}
+          estimatedTime={moduleToEdit.estimatedTime || 3}
+          description={moduleToEdit.description || ""}
+          initialContent={moduleToEdit.content || []}
+          onSave={handleSaveModule}
+          onClose={() => {
+            console.log("❌ [CourseContentTree] Editor cerrado sin guardar")
+            setEditingModuleId(null)
+          }}
+          role={role}
+          cursoId={courseId}
+        />
+      )
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // RENDERIZADO PRINCIPAL: Árbol de Contenido
+  // ═══════════════════════════════════════════════════════════════
   return (
     <Card className="border-border/50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Book className="w-5 h-5 text-primary" />
-          Contenido del Curso - Vista Jerárquica
+          Contenido del Curso
+          {(role === "DOCENTE" || role === "ADMIN") && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              Modo edición activado - Pasa el cursor sobre los módulos
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-1">
           {courseContent.map((node) => (
-            <ContentTreeNode key={node.id} node={node} level={0} onNodeClick={(node) => setSelectedModule(node)} />
+            <ContentTreeNode
+              key={node.id}
+              contentItem={node}
+              level={0}
+              role={role}
+              onEditModule={handleEditModule}
+            />
           ))}
         </div>
 
         {/* Legend */}
-        <div className="mt-6 pt-6 border-t border-border/50 flex flex-wrap gap-6">
-          <div className="flex items-center gap-2 text-sm">
-            <CheckCircle2 className="w-4 h-4 text-green-500" />
-            <span className="text-muted-foreground">Completado</span>
+        <div className="mt-6 pt-6 border-t border-border/50">
+          <h4 className="text-sm font-semibold text-foreground mb-3">Leyenda:</h4>
+          <div className="flex flex-wrap gap-6">
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+              <span className="text-muted-foreground">Completado</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Circle className="w-4 h-4 text-blue-500" />
+              <span className="text-muted-foreground">En Progreso</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Lock className="w-4 h-4 text-gray-400" />
+              <span className="text-muted-foreground">Bloqueado</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Circle className="w-4 h-4 text-blue-500" />
-            <span className="text-muted-foreground">En Progreso</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Circle className="w-4 h-4 text-gray-400" />
-            <span className="text-muted-foreground">Bloqueado</span>
+
+          {/* Información de Lazy Loading */}
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              <span className="font-semibold">💡 Lazy Loading Activado:</span> Los materiales pesados (videos, PDFs)
+              solo se cargarán cuando hagas clic en "Cargar Contenido".
+            </p>
           </div>
         </div>
       </CardContent>

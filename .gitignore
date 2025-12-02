@@ -79,3 +79,7 @@ frontend.log
 *.rej
 *.seed
 *.pid.lock
+
+
+nul
+edulearn-frontend/nul
