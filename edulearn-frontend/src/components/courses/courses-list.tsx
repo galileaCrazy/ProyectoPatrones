@@ -1,47 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-const MOCK_COURSES = [
-  {
-    id: '1',
-    name: 'Programación Orientada a Objetos',
-    instructor: 'Juan Pérez',
-    students: 45,
-    progress: 75,
-    type: 'Virtual',
-    status: 'Activo',
-  },
-  {
-    id: '2',
-    name: 'Diseño de Patrones de Software',
-    instructor: 'María González',
-    students: 38,
-    progress: 60,
-    type: 'Híbrido',
-    status: 'Activo',
-  },
-  {
-    id: '3',
-    name: 'Base de Datos Avanzadas',
-    instructor: 'Carlos Ramírez',
-    students: 52,
-    progress: 45,
-    type: 'Presencial',
-    status: 'Activo',
-  },
-  {
-    id: '4',
-    name: 'Desarrollo Web Moderno',
-    instructor: 'Laura Martínez',
-    students: 60,
-    progress: 30,
-    type: 'Virtual',
-    status: 'Activo',
-  },
-]
+interface Curso {
+  id: number
+  codigo: string
+  nombre: string
+  descripcion: string
+  tipoCurso: string
+  estado: string
+  profesorTitularId: number
+  periodoAcademico: string
+  duracion: number
+  estrategiaEvaluacion: string
+  cupoMaximo: number
+}
 
 interface CoursesListViewProps {
   role: 'student' | 'professor' | 'admin'
@@ -52,12 +27,77 @@ interface CoursesListViewProps {
 export default function CoursesListView({ role, onSelectCourse, onCreateCourse }: CoursesListViewProps) {
   const [selectedFilter, setSelectedFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [courses, setCourses] = useState<Curso[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredCourses = MOCK_COURSES.filter(course => {
-    const matchesSearch = course.name.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Obtener usuario del localStorage
+        const usuarioStr = localStorage.getItem('usuario')
+        if (!usuarioStr) {
+          throw new Error('No hay usuario autenticado')
+        }
+
+        const usuario = JSON.parse(usuarioStr)
+        const userId = usuario.id
+        const userRole = usuario.tipoUsuario
+
+        // Llamar al endpoint del backend
+        const response = await fetch(`http://localhost:8080/api/cursos/por-usuario/${userId}?rol=${userRole}`)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('Error del servidor:', response.status, errorText)
+          throw new Error(`Error al cargar los cursos: ${response.status} - ${errorText}`)
+        }
+
+        const data = await response.json()
+        console.log('Cursos cargados:', data)
+        setCourses(data)
+      } catch (err) {
+        console.error('Error al cargar cursos:', err)
+        setError(err instanceof Error ? err.message : 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCourses()
+  }, [])
+
+  const filteredCourses = courses.filter(course => {
+    const matchesSearch = course.nombre.toLowerCase().includes(searchQuery.toLowerCase())
     if (selectedFilter === 'all') return matchesSearch
-    return matchesSearch && course.type.toLowerCase() === selectedFilter
+    return matchesSearch && course.tipoCurso.toLowerCase() === selectedFilter.toLowerCase()
   })
+
+  if (loading) {
+    return (
+      <div className="p-8 max-w-7xl mx-auto">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Cargando cursos...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 max-w-7xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">Error: {error}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -108,60 +148,65 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
       </div>
 
       {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCourses.map((course) => (
-          <Card
-            key={course.id}
-            className="cursor-pointer hover:shadow-lg transition-shadow border-border/50"
-            onClick={() => onSelectCourse(course.id)}
-          >
-            <CardHeader>
-              <div className="flex justify-between items-start mb-2">
-                <CardTitle className="text-lg">{course.name}</CardTitle>
-                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                  {course.type}
-                </span>
-              </div>
-              <CardDescription>{course.instructor}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Progreso</span>
-                    <span className="font-semibold text-foreground">{course.progress}%</span>
+      {filteredCourses.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground text-lg">No hay cursos disponibles</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCourses.map((course) => (
+            <Card
+              key={course.id}
+              className="cursor-pointer hover:shadow-lg transition-shadow border-border/50"
+              onClick={() => onSelectCourse(course.id.toString())}
+            >
+              <CardHeader>
+                <div className="flex justify-between items-start mb-2">
+                  <CardTitle className="text-lg">{course.nombre}</CardTitle>
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    {course.tipoCurso}
+                  </span>
+                </div>
+                <CardDescription>{course.codigo}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">{course.descripcion}</p>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full bg-primary"
-                      style={{ width: `${course.progress}%` }}
-                    ></div>
+                  <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t">
+                    <div>
+                      <p className="text-muted-foreground">Duración</p>
+                      <p className="font-semibold text-foreground">{course.duracion} horas</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Estado</p>
+                      <p className={`font-semibold ${
+                        course.estado === 'Activo' ? 'text-green-600' : 'text-gray-600'
+                      }`}>
+                        {course.estado}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-sm">
+                    <p className="text-muted-foreground">Período</p>
+                    <p className="font-semibold text-foreground">{course.periodoAcademico}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm pt-2">
-                  <div>
-                    <p className="text-muted-foreground">Estudiantes</p>
-                    <p className="font-semibold text-foreground">{course.students}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Estado</p>
-                    <p className="font-semibold text-green-600">{course.status}</p>
-                  </div>
-                </div>
-              </div>
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSelectCourse(course.id)
-                }}
-                className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                Ver Detalles
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelectCourse(course.id.toString())
+                  }}
+                  className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  Ver Detalles
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
