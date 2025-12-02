@@ -48,7 +48,7 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
         const userRole = usuario.tipoUsuario
 
         // Llamar al endpoint del backend
-        const response = await fetch(`http://localhost:8080/api/cursos/por-usuario/${userId}?rol=${userRole}`)
+       const response = await fetch("http://localhost:8080/api/cursos")
 
         if (!response.ok) {
           const errorText = await response.text()

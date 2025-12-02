@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Navigation from '@/components/layout/navigation'
 import DashboardContent from '@/components/dashboard/dashboard-content'
 import CoursesListView from '@/components/courses/courses-list'
+import CourseBuilderView from '@/components/courses/course-builder'
 import CourseDetailView from '@/components/courses/course-detail'
 import StudentsManagementView from '@/components/students/students-management'
 import EvaluationsView from '@/components/evaluations/evaluations-list'
@@ -12,6 +13,8 @@ import ReportsView from '@/components/reports/reports-generator'
 import CalendarView from '@/components/calendar/calendar'
 import ForumsView from '@/components/forums/forums'
 import { StudentInscripcionView } from '@/components/inscripciones'
+import { NotificationsPanel } from '@/components/notifications'
+import { SystemSettings } from '@/components/settings'
 
 interface DashboardProps {
   role: 'student' | 'professor' | 'admin'
@@ -33,9 +36,17 @@ export default function Dashboard({ role, onLogout }: DashboardProps) {
             setSelectedCourseId(id)
             setCurrentView('course-detail')
           }}
+          onCreateCourse={() => setCurrentView('create-course')}
         />
       case 'course-detail':
         return <CourseDetailView courseId={selectedCourseId} role={role} onBack={() => setCurrentView('courses')} />
+      case 'create-course':
+        return <CourseBuilderView
+          onClose={() => setCurrentView('courses')}
+          userRole={role === 'professor' ? 'professor' : 'admin'}
+          userId="1"
+          userName="Usuario Actual"
+        />
       case 'students':
         return <StudentsManagementView />
       case 'evaluations':
@@ -50,6 +61,10 @@ export default function Dashboard({ role, onLogout }: DashboardProps) {
         return <ForumsView />
       case 'inscripciones':
         return <StudentInscripcionView />
+      case 'notifications':
+        return <NotificationsPanel userRole={role} />
+      case 'settings':
+        return <SystemSettings userRole={role as 'admin'} />
       default:
         return <DashboardContent role={role} />
     }
