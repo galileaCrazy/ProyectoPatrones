@@ -22,6 +22,9 @@ public class ReporteGenerado {
     @Column(name = "contenido", columnDefinition = "TEXT")
     private String contenido;
 
+    @Column(name = "contenido_binario", columnDefinition = "LONGBLOB")
+    private byte[] contenidoBinario;
+
     @Column(name = "ruta_archivo")
     private String rutaArchivo;
 
@@ -75,4 +78,7 @@ public class ReporteGenerado {
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+
+    public byte[] getContenidoBinario() { return contenidoBinario; }
+    public void setContenidoBinario(byte[] contenidoBinario) { this.contenidoBinario = contenidoBinario; }
 }

@@ -216,12 +216,40 @@ public class CursoController {
      */
     @PostMapping("/builder/intensivo")
     public Curso crearCursoIntensivo(@RequestBody Map<String, Object> params) {
-        CursoDirector director = new CursoDirector();
-        Curso curso = director.construirCursoIntensivo(
-            (String) params.get("nombre"),
-            (Integer) params.get("profesorId")
-        );
-        return cursoRepository.save(curso);
+        try {
+            System.out.println("📥 Recibiendo solicitud de curso intensivo");
+            System.out.println("📦 Parámetros: " + params);
+
+            String nombre = (String) params.get("nombre");
+            Object profesorIdObj = params.get("profesorId");
+
+            Integer profesorId = null;
+            if (profesorIdObj != null) {
+                if (profesorIdObj instanceof Integer) {
+                    profesorId = (Integer) profesorIdObj;
+                } else if (profesorIdObj instanceof String) {
+                    try {
+                        profesorId = Integer.parseInt((String) profesorIdObj);
+                    } catch (NumberFormatException e) {
+                        System.err.println("❌ Error: profesorId no es un número válido: " + profesorIdObj);
+                    }
+                }
+            }
+
+            System.out.println("👤 Profesor ID: " + profesorId);
+            System.out.println("📝 Nombre: " + nombre);
+
+            CursoDirector director = new CursoDirector();
+            Curso curso = director.construirCursoIntensivo(nombre, profesorId);
+            Curso cursoGuardado = cursoRepository.save(curso);
+
+            System.out.println("✅ Curso intensivo creado con ID: " + cursoGuardado.getId());
+            return cursoGuardado;
+        } catch (Exception e) {
+            System.err.println("❌ Error al crear curso intensivo: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error al crear curso intensivo: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -230,13 +258,42 @@ public class CursoController {
      */
     @PostMapping("/builder/certificacion")
     public Curso crearCursoCertificacion(@RequestBody Map<String, Object> params) {
-        CursoDirector director = new CursoDirector();
-        Curso curso = director.construirCursoCertificacion(
-            (String) params.get("nombre"),
-            (Integer) params.get("profesorId"),
-            (String) params.get("periodoAcademico")
-        );
-        return cursoRepository.save(curso);
+        try {
+            System.out.println("📥 Recibiendo solicitud de curso certificación");
+            System.out.println("📦 Parámetros: " + params);
+
+            String nombre = (String) params.get("nombre");
+            String periodoAcademico = (String) params.get("periodoAcademico");
+            Object profesorIdObj = params.get("profesorId");
+
+            Integer profesorId = null;
+            if (profesorIdObj != null) {
+                if (profesorIdObj instanceof Integer) {
+                    profesorId = (Integer) profesorIdObj;
+                } else if (profesorIdObj instanceof String) {
+                    try {
+                        profesorId = Integer.parseInt((String) profesorIdObj);
+                    } catch (NumberFormatException e) {
+                        System.err.println("❌ Error: profesorId no es un número válido: " + profesorIdObj);
+                    }
+                }
+            }
+
+            System.out.println("👤 Profesor ID: " + profesorId);
+            System.out.println("📝 Nombre: " + nombre);
+            System.out.println("📅 Período: " + periodoAcademico);
+
+            CursoDirector director = new CursoDirector();
+            Curso curso = director.construirCursoCertificacion(nombre, profesorId, periodoAcademico);
+            Curso cursoGuardado = cursoRepository.save(curso);
+
+            System.out.println("✅ Curso certificación creado con ID: " + cursoGuardado.getId());
+            return cursoGuardado;
+        } catch (Exception e) {
+            System.err.println("❌ Error al crear curso certificación: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error al crear curso certificación: " + e.getMessage(), e);
+        }
     }
 
     // ========== ENDPOINTS CON PATRÓN PROTOTYPE ==========
