@@ -1,8 +1,8 @@
 package com.edulearn.controller;
 
 import com.edulearn.model.IntegracionExterna;
-import com.edulearn.patterns.structural.adapter.ISistemaVideoconferencia;
-import com.edulearn.patterns.structural.adapter.VideoconferenciaAdapterFactory;
+import com.edulearn.patterns.estructural.adapter.ISistemaVideoconferencia;
+import com.edulearn.patterns.estructural.adapter.VideoconferenciaAdapterFactory;
 import com.edulearn.repository.IntegracionExternaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

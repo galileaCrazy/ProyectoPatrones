@@ -1,29 +1,54 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ModuleTree } from './module-tree'
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { CourseContentTree } from "./course-content-tree"
+import { ModuleTree } from "./module-tree"
 
 interface CourseDetailViewProps {
   courseId: string | null
-  role: 'student' | 'professor' | 'admin'
+  role: "student" | "professor" | "admin"
   onBack: () => void
 }
 
 export default function CourseDetailView({ courseId, role, onBack }: CourseDetailViewProps) {
-  const [activeTab, setActiveTab] = useState('content')
+  const [activeTab, setActiveTab] = useState("content")
   const [selectedNode, setSelectedNode] = useState<any>(null)
 
   const course = {
     id: courseId,
-    name: 'Programación Orientada a Objetos',
-    instructor: 'Juan Pérez',
-    description: 'Aprende los conceptos fundamentales de POO',
-    type: 'Virtual',
+    name: "Programación Orientada a Objetos",
+    instructor: "Juan Pérez",
+    description: "Aprende los conceptos fundamentales de POO",
+    type: "Virtual",
     students: 45,
     progress: 75,
   }
+
+  const modules = [
+    {
+      id: "1",
+      name: "Introducción a POO",
+      lessons: 3,
+      completed: 3,
+      status: "completed",
+    },
+    {
+      id: "2",
+      name: "Clases y Objetos",
+      lessons: 4,
+      completed: 3,
+      status: "in-progress",
+    },
+    {
+      id: "3",
+      name: "Herencia y Polimorfismo",
+      lessons: 3,
+      completed: 0,
+      status: "locked",
+    },
+  ]
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -38,9 +63,7 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
             <h1 className="text-3xl font-bold text-foreground">{course.name}</h1>
             <p className="text-muted-foreground mt-2">Instructor: {course.instructor}</p>
           </div>
-          <span className="bg-primary/10 text-primary px-4 py-2 rounded-lg">
-            {course.type}
-          </span>
+          <span className="bg-primary/10 text-primary px-4 py-2 rounded-lg">{course.type}</span>
         </div>
 
         {/* Progress Bar */}
@@ -60,14 +83,14 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
 
       {/* Tabs */}
       <div className="flex gap-4 mb-6 border-b border-border">
-        {['content', 'estudiantes', 'evaluaciones', 'estadísticas'].map((tab) => (
+        {["content", "estudiantes", "evaluaciones", "estadísticas"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-3 font-medium transition-colors border-b-2 ${
               activeTab === tab
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -76,102 +99,38 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
       </div>
 
       {/* Content */}
-      {activeTab === 'content' && (
+      {activeTab === "content" && (
         <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Contenido del Curso</h2>
+          <CourseContentTree courseId={courseId || ""} onNodeSelect={setSelectedNode} />
 
-          {/* Árbol jerárquico del curso usando Composite Pattern */}
-          {courseId ? (
-            <ModuleTree
-              cursoId={parseInt(courseId)}
-              onNodeSelect={setSelectedNode}
-            />
-          ) : (
-            <Card className="border-border/50">
-              <CardContent className="p-8 text-center">
-                <p className="text-muted-foreground">
-                  No se ha seleccionado un curso válido
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Información adicional del nodo seleccionado */}
+          {/* Selected Node Details */}
           {selectedNode && (
             <Card className="border-border/50 bg-accent/5">
               <CardHeader>
-                <CardTitle>{selectedNode.nombre}</CardTitle>
+                <CardTitle>{selectedNode.name}</CardTitle>
                 <CardDescription>
-                  Tipo: {selectedNode.tipo} | Duración: {Math.ceil((selectedNode.duracionTotal || 0) / 60)} min
+                  Tipo: {selectedNode.type.charAt(0).toUpperCase() + selectedNode.type.slice(1)}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {selectedNode.descripcion && (
-                    <p className="text-muted-foreground">{selectedNode.descripcion}</p>
-                  )}
-
-                  {selectedNode.estado && (
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Selecciona cualquier módulo, lección o actividad para ver más detalles.
+                  </p>
+                  {selectedNode.status && (
                     <div>
                       <p className="text-sm font-medium mb-1">Estado:</p>
-                      <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                        selectedNode.estado === 'published' ? 'bg-green-100 text-green-700' :
-                        selectedNode.estado === 'draft' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {selectedNode.estado === 'published' ? 'Publicado' :
-                         selectedNode.estado === 'draft' ? 'Borrador' : selectedNode.estado}
+                      <span
+                        className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                          selectedNode.status === "completed"
+                            ? "bg-green-100 text-green-700"
+                            : selectedNode.status === "in-progress"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {selectedNode.status.charAt(0).toUpperCase() + selectedNode.status.slice(1)}
                       </span>
-                    </div>
-                  )}
-
-                  {selectedNode.hijos && selectedNode.hijos.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium mb-1">Contenido:</p>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedNode.hijos.length} elemento(s) en este nodo
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Información específica de materiales */}
-                  {selectedNode.tipoMaterial && (
-                    <div>
-                      <p className="text-sm font-medium mb-1">Tipo de Material:</p>
-                      <span className="text-sm text-muted-foreground">{selectedNode.tipoMaterial}</span>
-                      {selectedNode.esObligatorio && (
-                        <span className="ml-2 text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
-                          Obligatorio
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Información específica de evaluaciones */}
-                  {selectedNode.tipoEvaluacion && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-sm font-medium mb-1">Tipo:</p>
-                        <p className="text-sm text-muted-foreground">{selectedNode.tipoEvaluacion}</p>
-                      </div>
-                      {selectedNode.puntajeMaximo && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">Puntaje Máximo:</p>
-                          <p className="text-sm text-muted-foreground">{selectedNode.puntajeMaximo}</p>
-                        </div>
-                      )}
-                      {selectedNode.intentosPermitidos && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">Intentos:</p>
-                          <p className="text-sm text-muted-foreground">{selectedNode.intentosPermitidos}</p>
-                        </div>
-                      )}
-                      {selectedNode.tiempoLimiteMinutos && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">Tiempo Límite:</p>
-                          <p className="text-sm text-muted-foreground">{selectedNode.tiempoLimiteMinutos} min</p>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -181,7 +140,7 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
         </div>
       )}
 
-      {activeTab === 'estudiantes' && (
+      {activeTab === "estudiantes" && (
         <Card>
           <CardHeader>
             <CardTitle>Estudiantes Inscritos ({course.students})</CardTitle>
@@ -189,7 +148,10 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
           <CardContent>
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border"
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                       <span className="text-primary font-semibold">ST</span>
@@ -207,7 +169,7 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
         </Card>
       )}
 
-      {activeTab === 'evaluaciones' && (
+      {activeTab === "evaluaciones" && (
         <Card>
           <CardHeader>
             <CardTitle>Evaluaciones del Curso</CardTitle>
@@ -215,9 +177,9 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
           <CardContent>
             <div className="space-y-3">
               {[
-                { name: 'Quiz 1: Conceptos Básicos', type: 'Quiz', date: '15/11/2025', score: 92 },
-                { name: 'Tarea: Implementación de Clases', type: 'Tarea', date: '20/11/2025', score: 88 },
-                { name: 'Examen Parcial', type: 'Examen', date: '25/11/2025', score: null },
+                { name: "Quiz 1: Conceptos Básicos", type: "Quiz", date: "15/11/2025", score: 92 },
+                { name: "Tarea: Implementación de Clases", type: "Tarea", date: "20/11/2025", score: 88 },
+                { name: "Examen Parcial", type: "Examen", date: "25/11/2025", score: null },
               ].map((eval_, i) => (
                 <div key={i} className="p-3 rounded-lg bg-muted/50 border border-border">
                   <div className="flex justify-between items-start">
@@ -241,7 +203,7 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
         </Card>
       )}
 
-      {activeTab === 'estadísticas' && (
+      {activeTab === "estadísticas" && (
         <Card>
           <CardHeader>
             <CardTitle>Estadísticas</CardTitle>

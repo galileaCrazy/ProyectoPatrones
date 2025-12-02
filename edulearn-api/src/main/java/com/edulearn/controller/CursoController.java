@@ -1,24 +1,112 @@
 package com.edulearn.controller;
 
 import com.edulearn.model.Curso;
+import com.edulearn.model.Inscripcion;
+import com.edulearn.model.Modulo;
 import com.edulearn.patterns.creational.builder.CursoBuilder;
 import com.edulearn.patterns.creational.builder.CursoDirector;
 import com.edulearn.patterns.creational.prototype.CursoPrototype;
+import com.edulearn.patterns.comportamiento.chain_of_responsibility.SolicitudValidacion;
 import com.edulearn.repository.CursoRepository;
+import com.edulearn.repository.InscripcionRepository;
+import com.edulearn.repository.ModuloRepository;
+import com.edulearn.service.CadenaVisualizacionCursosService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/cursos")
+@CrossOrigin(origins = "*")
 public class CursoController {
+    private static final Logger logger = LoggerFactory.getLogger(CursoController.class);
+
     @Autowired
     private CursoRepository cursoRepository;
 
-    @GetMapping         // ← sin nada = responde a /api/cursos
+    @Autowired
+    private InscripcionRepository inscripcionRepository;
+
+    @Autowired
+    private ModuloRepository moduloRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private CadenaVisualizacionCursosService cadenaVisualizacionService;
+
+    @GetMapping
     public List<Curso> getAll() {
         return cursoRepository.findAll();
+    }
+
+    /**
+     * GET /api/cursos/por-usuario/{userId}?rol={rol}
+     * Obtener cursos filtrados según el rol del usuario usando Chain of Responsibility.
+     *
+     * Patrón utilizado: Chain of Responsibility
+     * - administrador: todos los cursos
+     * - profesor: solo sus cursos
+     * - estudiante: solo cursos inscritos
+     */
+    @GetMapping("/por-usuario/{userId}")
+    public ResponseEntity<?> getCursosPorUsuario(
+            @PathVariable Integer userId,
+            @RequestParam String rol
+    ) {
+        logger.info("🔍 Obteniendo cursos para usuario {} con rol {}", userId, rol);
+
+        // Usar Chain of Responsibility para validar permisos
+        SolicitudValidacion validacion = cadenaVisualizacionService.validarVisualizacion(userId, rol);
+
+        // Si la validación falló, retornar error
+        if (!validacion.isAprobada()) {
+            logger.error("❌ Validación fallida: {}", validacion.getMensajeError());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of(
+                        "error", validacion.getMensajeError(),
+                        "userId", userId,
+                        "rol", rol
+                    ));
+        }
+
+        // Obtener el tipo de filtro determinado por la cadena
+        String tipoFiltro = (String) validacion.getMetadatos().get("tipoFiltro");
+        List<Curso> cursos;
+
+        switch (tipoFiltro) {
+            case "TODOS":
+                // Administrador ve todos los cursos
+                cursos = cursoRepository.findAll();
+                logger.info("✅ Administrador - Retornando {} cursos", cursos.size());
+                break;
+
+            case "POR_PROFESOR":
+                // Profesor ve solo sus cursos
+                cursos = cursoRepository.findByProfesorTitularId(userId);
+                logger.info("✅ Profesor - Retornando {} cursos", cursos.size());
+                break;
+
+            case "POR_ESTUDIANTE":
+                // Estudiante ve solo cursos donde está inscrito
+                cursos = cursoRepository.findCursosByEstudianteId(userId);
+                logger.info("✅ Estudiante - Retornando {} cursos inscritos", cursos.size());
+                break;
+
+            default:
+                logger.error("❌ Tipo de filtro no reconocido: {}", tipoFiltro);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("error", "Tipo de filtro no reconocido"));
+        }
+
+        return ResponseEntity.ok(cursos);
     }
 
     @GetMapping("/{id}")
