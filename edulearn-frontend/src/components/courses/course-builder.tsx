@@ -215,12 +215,20 @@ export default function CourseBuilderView({ onClose, onCourseCreated, userRole, 
         body.periodoAcademico = courseData.period
       } else if (courseData.type === 'Virtual') {
         endpoint = "/cursos/builder/intensivo"
-        body.profesorId = courseData.professorId
+        // Solo enviar profesorId si tiene un valor válido
+        if (courseData.professorId && courseData.professorId !== '') {
+          body.profesorId = parseInt(courseData.professorId)
+        }
       } else {
         endpoint = "/cursos/builder/certificacion"
-        body.profesorId = courseData.professorId
+        // Solo enviar profesorId si tiene un valor válido
+        if (courseData.professorId && courseData.professorId !== '') {
+          body.profesorId = parseInt(courseData.professorId)
+        }
         body.periodoAcademico = courseData.period
       }
+
+      console.log('📤 Enviando al backend:', { endpoint, body })
 
       // Llamar al patrón Builder en el backend
       const response = await fetch(`${API_URL}${endpoint}`, {
@@ -236,13 +244,13 @@ export default function CourseBuilderView({ onClose, onCourseCreated, userRole, 
       }
 
       const createdCourse = await response.json()
-      console.log('Curso creado:', createdCourse)
+      console.log('✅ Curso creado:', createdCourse)
 
       onCourseCreated?.()
       onClose()
     } catch (err: any) {
       setError(err.message)
-      console.error('Error:', err)
+      console.error('❌ Error:', err)
     } finally {
       setLoading(false)
     }
