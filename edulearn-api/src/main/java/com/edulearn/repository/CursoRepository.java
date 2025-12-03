@@ -11,7 +11,7 @@ public interface CursoRepository extends JpaRepository<Curso, Integer> {
     // Obtener cursos por profesor
     List<Curso> findByProfesorTitularId(Integer profesorId);
 
-    // Obtener cursos donde el estudiante está inscrito
-    @Query("SELECT c FROM Curso c JOIN Inscripcion i ON c.id = i.cursoId WHERE i.estudianteId = :estudianteId")
+    // Obtener cursos donde el estudiante está inscrito con estado ACTIVA
+    @Query("SELECT c FROM Curso c JOIN Inscripcion i ON c.id = i.cursoId WHERE i.estudianteId = :estudianteId AND i.estadoInscripcion = 'Activa'")
     List<Curso> findCursosByEstudianteId(@Param("estudianteId") Integer estudianteId);
 }

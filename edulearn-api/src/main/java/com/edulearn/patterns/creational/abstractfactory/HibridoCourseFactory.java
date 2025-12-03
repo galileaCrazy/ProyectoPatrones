@@ -2,7 +2,6 @@ package com.edulearn.patterns.creational.abstractfactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 /**
  * Fábrica Concreta: HibridoCourseFactory
  * Implementa CourseComponentFactory para crear familias de productos

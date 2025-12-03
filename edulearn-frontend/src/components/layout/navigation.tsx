@@ -2,6 +2,22 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  LayoutDashboard,
+  BookOpen,
+  ClipboardList,
+  FileCheck,
+  Bell,
+  Calendar,
+  MessageSquare,
+  PlusCircle,
+  Users,
+  BarChart3,
+  Settings,
+  GraduationCap,
+  LogOut,
+  Library
+} from 'lucide-react'
 
 interface NavigationProps {
   role: 'student' | 'professor' | 'admin'
@@ -12,34 +28,35 @@ interface NavigationProps {
 
 const menuItems = {
   student: [
-    { id: 'dashboard', label: 'Dashboard', icon: '' },
-    { id: 'courses', label: 'Mis Cursos', icon: '' },
-    { id: 'inscripciones', label: 'Inscripciones', icon: '' },
-    { id: 'evaluations', label: 'Mis Evaluaciones', icon: '' },
-    { id: 'notifications', label: 'Notificaciones', icon: '' },
-    { id: 'calendar', label: 'Calendario', icon: '' },
-    { id: 'forums', label: 'Foros', icon: '' },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'courses', label: 'Mis Cursos', icon: BookOpen },
+    { id: 'inscripciones', label: 'Inscripciones', icon: ClipboardList },
+    { id: 'evaluations', label: 'Mis Evaluaciones', icon: FileCheck },
+    { id: 'notifications', label: 'Notificaciones', icon: Bell },
+    { id: 'calendar', label: 'Calendario', icon: Calendar },
+    { id: 'forums', label: 'Foros', icon: MessageSquare },
   ],
   professor: [
-    { id: 'dashboard', label: 'Dashboard', icon: '' },
-    { id: 'courses', label: 'Mis Cursos', icon: '' },
-    { id: 'create-course', label: 'Crear Curso', icon: '' },
-    { id: 'students', label: 'Estudiantes', icon: '' },
-    { id: 'evaluations', label: 'Evaluaciones', icon: '' },
-    { id: 'notifications', label: 'Notificaciones', icon: '' },
-    { id: 'reports', label: 'Reportes', icon: '' },
-    { id: 'calendar', label: 'Calendario', icon: '' },
-    { id: 'forums', label: 'Foros', icon: '' },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'courses', label: 'Mis Cursos', icon: BookOpen },
+    { id: 'create-course', label: 'Crear Curso', icon: PlusCircle },
+    { id: 'students', label: 'Estudiantes', icon: Users },
+    { id: 'evaluations', label: 'Evaluaciones', icon: FileCheck },
+    { id: 'notifications', label: 'Notificaciones', icon: Bell },
+    { id: 'reports', label: 'Reportes', icon: BarChart3 },
+    { id: 'calendar', label: 'Calendario', icon: Calendar },
+    { id: 'forums', label: 'Foros', icon: MessageSquare },
   ],
   admin: [
-    { id: 'dashboard', label: 'Dashboard', icon: '' },
-    { id: 'courses', label: 'Todos los Cursos', icon: '' },
-    { id: 'students', label: 'Gestión Estudiantes', icon: '' },
-    { id: 'evaluations', label: 'Evaluaciones', icon: '' },
-    { id: 'notifications', label: 'Notificaciones', icon: '' },
-    { id: 'settings', label: 'Configuración', icon: '' },
-    { id: 'reports', label: 'Reportes', icon: '' },
-    { id: 'calendar', label: 'Calendario', icon: '' },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'courses', label: 'Todos los Cursos', icon: Library },
+    { id: 'students', label: 'Gestión Estudiantes', icon: Users },
+    { id: 'becas', label: 'Validar Becas', icon: GraduationCap },
+    { id: 'evaluations', label: 'Evaluaciones', icon: FileCheck },
+    { id: 'notifications', label: 'Notificaciones', icon: Bell },
+    { id: 'settings', label: 'Configuración', icon: Settings },
+    { id: 'reports', label: 'Reportes', icon: BarChart3 },
+    { id: 'calendar', label: 'Calendario', icon: Calendar },
   ],
 }
 
@@ -54,7 +71,7 @@ export default function Navigation({ role, currentView, onNavigate, onLogout }: 
         {!isCollapsed && (
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
-              <span className="text-sidebar-primary-foreground font-bold">📚</span>
+              <GraduationCap className="w-5 h-5 text-sidebar-primary-foreground" />
             </div>
             <span className="font-bold text-sidebar-foreground">EduLearn</span>
           </div>
@@ -69,29 +86,33 @@ export default function Navigation({ role, currentView, onNavigate, onLogout }: 
 
       {/* Menu Items */}
       <div className="flex-1 overflow-y-auto py-4">
-        {items.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onNavigate(item.id)}
-            className={`w-full flex items-center gap-4 px-6 py-3 text-left transition-colors ${
-              currentView === item.id
-                ? 'bg-sidebar-primary/10 text-sidebar-primary border-r-4 border-sidebar-primary'
-                : 'text-sidebar-foreground hover:bg-sidebar-accent'
-            }`}
-          >
-            <span className="text-xl">{item.icon}</span>
-            {!isCollapsed && <span className="font-medium">{item.label}</span>}
-          </button>
-        ))}
+        {items.map((item) => {
+          const IconComponent = item.icon
+          return (
+            <button
+              key={item.id}
+              onClick={() => onNavigate(item.id)}
+              className={`w-full flex items-center gap-4 px-6 py-3 text-left transition-colors ${
+                currentView === item.id
+                  ? 'bg-sidebar-primary/10 text-sidebar-primary border-r-4 border-sidebar-primary'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent'
+              }`}
+            >
+              <IconComponent className="w-5 h-5 flex-shrink-0" />
+              {!isCollapsed && <span className="font-medium">{item.label}</span>}
+            </button>
+          )
+        })}
       </div>
 
       {/* Logout */}
       <div className="p-4 border-t border-sidebar-border">
         <Button
           onClick={onLogout}
-          className="w-full bg-destructive/10 text-destructive hover:bg-destructive/20"
+          className="w-full bg-destructive/10 text-destructive hover:bg-destructive/20 flex items-center justify-center gap-2"
         >
-          {isCollapsed ? '🚪' : 'Cerrar Sesión'}
+          <LogOut className="w-4 h-4" />
+          {!isCollapsed && <span>Cerrar Sesión</span>}
         </Button>
       </div>
     </nav>

@@ -31,6 +31,9 @@ public class ReporteGenerado {
     @Column(name = "usuario_id")
     private Integer usuarioId;
 
+    @Column(name = "generado_por")
+    private Integer generadoPor;
+
     @Column(name = "fecha_generacion")
     private LocalDateTime fechaGeneracion;
 
@@ -45,6 +48,9 @@ public class ReporteGenerado {
         fechaGeneracion = LocalDateTime.now();
         if (estado == null) {
             estado = "GENERADO";
+        }
+        if (generadoPor == null) {
+            generadoPor = 1; // 1 = SYSTEM user
         }
     }
 
@@ -81,4 +87,7 @@ public class ReporteGenerado {
 
     public byte[] getContenidoBinario() { return contenidoBinario; }
     public void setContenidoBinario(byte[] contenidoBinario) { this.contenidoBinario = contenidoBinario; }
+
+    public Integer getGeneradoPor() { return generadoPor; }
+    public void setGeneradoPor(Integer generadoPor) { this.generadoPor = generadoPor; }
 }

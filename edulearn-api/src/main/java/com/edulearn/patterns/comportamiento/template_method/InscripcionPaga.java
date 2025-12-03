@@ -14,81 +14,75 @@ import java.util.UUID;
 
 /**
  * Implementación concreta para inscripciones pagas
- * 
- * Esta clase implementa el proceso de inscripción para cursos de pago,
- * incluyendo validación de pago, procesamiento de transacción y
- * generación de factura.
+ *
+ * Modalidad: PAGA
+ * Estado: Activa (inmediato tras pago exitoso)
+ * Certificado Garantizado: SÍ
+ * Monto: 500 pesos (fijo para todos los cursos)
+ *
+ * Validación Específica: Procesar el pago y confirmarlo
+ * Beneficio Adicional: Otorgar Certificado Garantizado al finalizar el curso
  */
 @Component("inscripcionPaga")
 public class InscripcionPaga extends ProcesoInscripcionTemplate {
-    
-    private static final BigDecimal PRECIO_BASE = new BigDecimal("500.00");
-    
+
+    private static final BigDecimal PRECIO_FIJO = new BigDecimal("500.00");
+
     @Override
     protected String getTipoInscripcion() {
         return "PAGA";
     }
-    
+
+    @Override
+    protected String getEstadoInscripcion() {
+        return "Activa";
+    }
+
+    @Override
+    protected boolean tieneCertificadoGarantizado() {
+        return true;
+    }
+
     @Override
     public String getDescripcion() {
         return "Proceso de inscripción para cursos de pago. " +
-               "Incluye validación de pago, procesamiento de transacción y generación de factura.";
+               "Monto fijo: 500 pesos. Incluye procesamiento de pago y " +
+               "garantía de certificado al finalizar el curso.";
     }
-    
+
     @Override
     public List<String> getPasosEspecificos() {
         return Arrays.asList(
+            "Aceptar términos y condiciones",
             "Validar requisitos previos",
             "Verificar disponibilidad de cupo",
-            "Validar documentación completa",
-            "Procesar pago",
-            "Aplicar descuentos (si aplica)",
-            "Registrar inscripción",
+            "Procesar pago de 500 pesos",
+            "Otorgar certificado garantizado",
+            "Registrar inscripción en BD",
             "Enviar notificaciones",
             "Generar factura y comprobante"
         );
     }
     
+    /**
+     * PASO VARIABLE 1: Realizar validación específica
+     * Para inscripción paga: Procesar el pago y confirmarlo
+     */
     @Override
-    protected ResultadoPaso validarDocumentacion(Estudiante estudiante, SolicitudInscripcion solicitud) {
-        ResultadoPaso paso = new ResultadoPaso("Validación de documentación completa");
-        
-        // Validar aceptación de términos
-        if (!solicitud.isAceptaTerminos()) {
-            paso.setExitoso(false);
-            paso.setMensaje("Debe aceptar los términos y condiciones");
-            return paso;
-        }
-        
+    protected ResultadoPaso realizarValidacionEspecifica(
+            Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud) {
+        ResultadoPaso paso = new ResultadoPaso("Procesamiento de pago");
+
         // Validar método de pago
         if (solicitud.getMetodoPago() == null || solicitud.getMetodoPago().isEmpty()) {
             paso.setExitoso(false);
-            paso.setMensaje("Debe especificar un método de pago");
+            paso.setMensaje("Debe especificar un método de pago válido");
             return paso;
         }
-        
-        paso.setExitoso(true);
-        paso.setMensaje("Documentación validada correctamente");
-        paso.agregarDetalle("terminosAceptados", "true");
-        paso.agregarDetalle("metodoPago", solicitud.getMetodoPago());
-        paso.agregarDetalle("fechaValidacion", LocalDateTime.now().toString());
-        
-        return paso;
-    }
-    
-    @Override
-    protected ResultadoPaso procesarAspectoEconomico(
-            Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud) {
-        ResultadoPaso paso = new ResultadoPaso("Procesamiento de pago");
-        
-        BigDecimal monto = solicitud.getMonto() != null ? solicitud.getMonto() : PRECIO_BASE;
-        
-        // Simular procesamiento de pago
-        // En un sistema real, aquí se conectaría con el gateway de pago
-        String transaccionId = "TXN-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
-        
-        // Simular validación de tarjeta
+
         String metodoPago = solicitud.getMetodoPago();
+
+        // Validar datos específicos según método de pago
         if ("TARJETA".equalsIgnoreCase(metodoPago)) {
             if (solicitud.getNumeroTarjeta() == null || solicitud.getNumeroTarjeta().length() < 4) {
                 paso.setExitoso(false);
@@ -96,60 +90,38 @@ public class InscripcionPaga extends ProcesoInscripcionTemplate {
                 return paso;
             }
         }
-        
+
+        // Simular procesamiento de pago con gateway
+        // En producción, aquí se conectaría con el gateway de pago real
+        String transaccionId = "TXN-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+
         paso.setExitoso(true);
-        paso.setMensaje("Pago procesado exitosamente");
+        paso.setMensaje("Pago procesado exitosamente por $" + PRECIO_FIJO + " MXN");
         paso.agregarDetalle("transaccionId", transaccionId);
-        paso.agregarDetalle("monto", monto.toString());
+        paso.agregarDetalle("monto", PRECIO_FIJO.toString());
         paso.agregarDetalle("moneda", "MXN");
         paso.agregarDetalle("metodoPago", metodoPago);
         paso.agregarDetalle("estadoPago", "APROBADO");
         paso.agregarDetalle("fechaPago", LocalDateTime.now().toString());
-        
+
         return paso;
     }
-    
+
+    /**
+     * PASO VARIABLE 2: Otorgar beneficios adicionales
+     * Para inscripción paga: Otorgar Certificado Garantizado
+     */
     @Override
-    protected ResultadoPaso aplicarBeneficios(
+    protected ResultadoPaso otorgarBeneficiosAdicionales(
             Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud) {
-        ResultadoPaso paso = new ResultadoPaso("Aplicación de descuentos");
-        
-        String codigoDescuento = solicitud.getCodigoDescuento();
-        
-        if (codigoDescuento != null && !codigoDescuento.isEmpty()) {
-            // Simular validación de código de descuento
-            BigDecimal descuento = BigDecimal.ZERO;
-            String tipoDescuento = "NINGUNO";
-            
-            switch (codigoDescuento.toUpperCase()) {
-                case "PROMO10":
-                    descuento = new BigDecimal("10");
-                    tipoDescuento = "PORCENTAJE";
-                    break;
-                case "PROMO20":
-                    descuento = new BigDecimal("20");
-                    tipoDescuento = "PORCENTAJE";
-                    break;
-                case "DESC50":
-                    descuento = new BigDecimal("50.00");
-                    tipoDescuento = "MONTO_FIJO";
-                    break;
-                default:
-                    paso.setExitoso(true);
-                    paso.setMensaje("Código de descuento no válido");
-                    return paso;
-            }
-            
-            paso.setExitoso(true);
-            paso.setMensaje("Descuento aplicado: " + codigoDescuento);
-            paso.agregarDetalle("codigoDescuento", codigoDescuento);
-            paso.agregarDetalle("descuento", descuento.toString());
-            paso.agregarDetalle("tipoDescuento", tipoDescuento);
-        } else {
-            paso.setExitoso(true);
-            paso.setMensaje("Sin código de descuento aplicado");
-        }
-        
+        ResultadoPaso paso = new ResultadoPaso("Otorgamiento de certificado garantizado");
+
+        paso.setExitoso(true);
+        paso.setMensaje("Certificado garantizado otorgado - El estudiante recibirá su certificado al completar el curso");
+        paso.agregarDetalle("certificadoGarantizado", "true");
+        paso.agregarDetalle("beneficio", "Certificado oficial garantizado al finalizar");
+        paso.agregarDetalle("requisito", "Completar el 100% del contenido del curso");
+
         return paso;
     }
     
@@ -157,26 +129,21 @@ public class InscripcionPaga extends ProcesoInscripcionTemplate {
     protected ResultadoPaso generarDocumentos(
             Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud) {
         ResultadoPaso paso = new ResultadoPaso("Generación de factura y comprobante");
-        
-        String numeroFactura = "FAC-" + LocalDateTime.now().getYear() + "-" + 
+
+        String numeroFactura = "FAC-" + LocalDateTime.now().getYear() + "-" +
                               UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         String numeroComprobante = "INS-P-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        
+
         paso.setExitoso(true);
         paso.setMensaje("Factura y comprobante generados exitosamente");
         paso.agregarDetalle("numeroFactura", numeroFactura);
         paso.agregarDetalle("numeroComprobante", numeroComprobante);
+        paso.agregarDetalle("monto", PRECIO_FIJO.toString());
+        paso.agregarDetalle("moneda", "MXN");
         paso.agregarDetalle("urlFactura", "/api/inscripciones/facturas/" + numeroFactura);
         paso.agregarDetalle("urlComprobante", "/api/inscripciones/documentos/" + numeroComprobante);
-        
+        paso.agregarDetalle("modalidad", "PAGA");
+
         return paso;
-    }
-    
-    /**
-     * Las inscripciones pagas requieren validación adicional de pago
-     */
-    @Override
-    protected boolean requiereValidacionAdicional() {
-        return true;
     }
 }

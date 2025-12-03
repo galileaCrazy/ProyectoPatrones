@@ -55,6 +55,12 @@ export default function EvaluationManager({ role }: EvaluationManagerProps) {
     intentosPermitidos: 1
   })
 
+  // Estados para el panel de calendarios
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [editingEvaluationId, setEditingEvaluationId] = useState<number | null>(null)
+  const [tempFechaInicio, setTempFechaInicio] = useState('')
+  const [tempFechaFin, setTempFechaFin] = useState('')
+
   useEffect(() => {
     loadData()
   }, [])
@@ -217,23 +223,56 @@ export default function EvaluationManager({ role }: EvaluationManagerProps) {
   }
 
   const handleChangeDueDate = async (id: number) => {
-    const newDate = prompt('Ingrese la nueva fecha límite (YYYY-MM-DD):')
-    if (!newDate) return
+    // Obtener la evaluación actual para pre-llenar los campos
+    const evaluation = Object.values(evaluationsByCourse)
+      .flatMap(c => c.evaluations)
+      .find(e => e.id === id)
 
-    const command = new ChangeDueDateCommand(
-      evaluationService,
-      id,
-      newDate,
-      () => loadEvaluations()
-    )
+    if (evaluation) {
+      // Extraer solo la fecha sin la hora para los inputs
+      const fechaInicio = evaluation.fechaInicio?.split('T')[0] || ''
+      const fechaFin = evaluation.fechaLimite?.split('T')[0] || ''
+
+      setTempFechaInicio(fechaInicio)
+      setTempFechaFin(fechaFin)
+      setEditingEvaluationId(id)
+      setShowDatePicker(true)
+    }
+  }
+
+  const handleConfirmDateChange = async () => {
+    if (!editingEvaluationId || !tempFechaInicio || !tempFechaFin) {
+      alert('Por favor complete ambas fechas')
+      return
+    }
 
     try {
-      await commandManager.executeCommand(command)
+      // Actualizar ambas fechas usando el servicio directamente
+      await evaluationService.updateEvaluation(editingEvaluationId, {
+        fechaInicio: tempFechaInicio,
+        fechaLimite: tempFechaFin
+      })
+
+      // Recargar evaluaciones y actualizar historial
+      await loadEvaluations()
       updateHistory()
-      alert('Fecha límite actualizada')
+
+      // Cerrar el panel
+      setShowDatePicker(false)
+      setEditingEvaluationId(null)
+
+      alert('Fechas actualizadas correctamente')
     } catch (error) {
-      alert('Error al cambiar fecha')
+      console.error('Error al actualizar fechas:', error)
+      alert('Error al actualizar fechas')
     }
+  }
+
+  const handleCancelDateChange = () => {
+    setShowDatePicker(false)
+    setEditingEvaluationId(null)
+    setTempFechaInicio('')
+    setTempFechaFin('')
   }
 
   const handleUndo = async () => {
@@ -489,8 +528,8 @@ export default function EvaluationManager({ role }: EvaluationManagerProps) {
                 <label className="block text-sm font-medium mb-2">Duración (minutos)</label>
                 <input
                   type="number"
-                  value={formData.duracionMinutos}
-                  onChange={(e) => setFormData({ ...formData, duracionMinutos: parseInt(e.target.value) })}
+                  value={formData.duracionMinutos || ''}
+                  onChange={(e) => setFormData({ ...formData, duracionMinutos: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               </div>
@@ -498,8 +537,8 @@ export default function EvaluationManager({ role }: EvaluationManagerProps) {
                 <label className="block text-sm font-medium mb-2">Intentos Permitidos</label>
                 <input
                   type="number"
-                  value={formData.intentosPermitidos}
-                  onChange={(e) => setFormData({ ...formData, intentosPermitidos: parseInt(e.target.value) })}
+                  value={formData.intentosPermitidos || ''}
+                  onChange={(e) => setFormData({ ...formData, intentosPermitidos: parseInt(e.target.value) || 1 })}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               </div>
@@ -588,6 +627,53 @@ export default function EvaluationManager({ role }: EvaluationManagerProps) {
                             </div>
                           </div>
                         </div>
+
+                        {/* Panel de Calendarios para cambiar fechas */}
+                        {showDatePicker && editingEvaluationId === evaluation.id && (
+                          <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 rounded-lg">
+                            <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-3">
+                              Actualizar Fechas de Evaluación
+                            </h4>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                  Fecha de Inicio
+                                </label>
+                                <input
+                                  type="date"
+                                  value={tempFechaInicio}
+                                  onChange={(e) => setTempFechaInicio(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                  Fecha de Fin
+                                </label>
+                                <input
+                                  type="date"
+                                  value={tempFechaFin}
+                                  onChange={(e) => setTempFechaFin(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                              <Button
+                                onClick={handleConfirmDateChange}
+                                className="bg-green-600 hover:bg-green-700 text-white text-sm"
+                              >
+                                Confirmar
+                              </Button>
+                              <Button
+                                onClick={handleCancelDateChange}
+                                className="bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-700 text-white text-sm"
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
 
                         {role !== 'student' && (
                           <div className="flex gap-2 pt-3 border-t">

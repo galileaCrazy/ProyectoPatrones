@@ -6,7 +6,7 @@ import com.edulearn.model.Curso;
  * DIRECTOR (parte opcional del patrón Builder)
  * =============================================
  * Propósito: Encapsular las diferentes formas de construir cursos.
- * Define secuencias de construcción predefinidas (recetas) para el sistema real.
+ * Define secuencias de construcción predefinidas para el sistema real.
  *
  * Ventajas:
  * - Separa la lógica de construcción del código cliente

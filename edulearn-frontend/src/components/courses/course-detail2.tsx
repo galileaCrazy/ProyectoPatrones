@@ -101,7 +101,10 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
       {/* Content */}
       {activeTab === "content" && (
         <div className="space-y-6">
-          <CourseContentTree courseId={courseId || ""} onNodeSelect={setSelectedNode} />
+          <CourseContentTree
+            courseId={courseId || ""}
+            role={role === "student" ? "ESTUDIANTE" : role === "professor" ? "DOCENTE" : "ADMIN"}
+          />
 
           {/* Selected Node Details */}
           {selectedNode && (

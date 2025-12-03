@@ -1,3 +1,24 @@
+#!/bin/bash
+
+echo "======================================"
+echo "Aplicando cambios al sistema de inscripciones"
+echo "======================================"
+
+# Backup de archivos
+echo "Creando backups..."
+cp edulearn-api/src/main/java/com/edulearn/patterns/comportamiento/template_method/InscripcionBeca.java edulearn-api/src/main/java/com/edulearn/patterns/comportamiento/template_method/InscripcionBeca.java.backup
+cp edulearn-api/src/main/java/com/edulearn/controller/InscripcionController.java edulearn-api/src/main/java/com/edulearn/controller/InscripcionController.java.backup
+cp edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx.backup
+cp edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx.backup
+
+echo "Backups creados con extensión .backup"
+
+# 1. Modificar InscripcionBeca.java - cambiar validación
+echo ""
+echo "1. Modificando InscripcionBeca.java..."
+
+# Crear archivo temporal con los cambios
+cat > /tmp/inscripcion_beca_nuevo.java << 'EOFBECA'
 package com.edulearn.patterns.comportamiento.template_method;
 
 import com.edulearn.model.Curso;
@@ -228,3 +249,140 @@ public class InscripcionBeca extends ProcesoInscripcionTemplate {
         }
     }
 }
+EOFBECA
+
+cp /tmp/inscripcion_beca_nuevo.java edulearn-api/src/main/java/com/edulearn/patterns/comportamiento/template_method/InscripcionBeca.java
+echo "   ✓ InscripcionBeca.java actualizado"
+
+# 2. Agregar endpoints en InscripcionController.java
+echo ""
+echo "2. Agregando endpoints en InscripcionController.java..."
+
+# Buscar la última línea del archivo (el último })
+sed -i '$ d' edulearn-api/src/main/java/com/edulearn/controller/InscripcionController.java
+
+# Agregar los nuevos endpoints
+cat >> edulearn-api/src/main/java/com/edulearn/controller/InscripcionController.java << 'EOFCONTROLLER'
+
+    /**
+     * Procesar inscripción usando Template Method Pattern
+     */
+    @PostMapping("/proceso")
+    public ResponseEntity<?> procesarInscripcion(@RequestBody SolicitudInscripcion solicitud) {
+        try {
+            ResultadoInscripcion resultado = inscripcionTemplateService.procesarInscripcion(solicitud);
+
+            if (resultado.isExitoso()) {
+                return ResponseEntity.ok(resultado);
+            } else {
+                return ResponseEntity.badRequest().body(resultado);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "exitoso", false,
+                "mensaje", "Error al procesar inscripción: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Obtener tipos de inscripción disponibles
+     */
+    @GetMapping("/proceso/tipos")
+    public List<Map<String, Object>> getTiposInscripcion() {
+        return inscripcionTemplateService.getTiposInscripcion();
+    }
+
+    /**
+     * Obtener pasos para un tipo específico de inscripción
+     */
+    @GetMapping("/proceso/pasos/{tipo}")
+    public Map<String, Object> getPasosParaTipo(@PathVariable String tipo) {
+        List<String> pasos = inscripcionTemplateService.getPasosParaTipo(tipo);
+        Map<String, Object> response = new HashMap<>();
+        response.put("tipo", tipo);
+        response.put("pasos", pasos);
+        return response;
+    }
+
+    /**
+     * Obtener cursos disponibles para inscripción
+     */
+    @GetMapping("/proceso/cursos-disponibles")
+    public List<Map<String, Object>> getCursosDisponibles() {
+        List<Map<String, Object>> cursosMap = new ArrayList<>();
+        for (var curso : inscripcionTemplateService.getCursosDisponibles()) {
+            Map<String, Object> cursoData = new HashMap<>();
+            cursoData.put("id", curso.getId());
+            cursoData.put("nombre", curso.getNombre());
+            cursoData.put("descripcion", curso.getDescripcion());
+            cursoData.put("codigo", curso.getCodigo());
+            cursoData.put("cupo_maximo", curso.getCupoMaximo());
+            cursoData.put("estado", curso.getEstado());
+            cursosMap.add(cursoData);
+        }
+        return cursosMap;
+    }
+
+    /**
+     * Información de demostración del patrón Template Method
+     */
+    @GetMapping("/proceso/demo")
+    public Map<String, Object> getDemoInfo() {
+        return inscripcionTemplateService.getDemoInfo();
+    }
+
+    /**
+     * Verificar elegibilidad de un estudiante para inscribirse a un curso
+     */
+    @GetMapping("/proceso/elegibilidad")
+    public Map<String, Object> verificarElegibilidad(
+            @RequestParam Integer estudianteId,
+            @RequestParam Integer cursoId) {
+        return inscripcionTemplateService.verificarElegibilidad(estudianteId, cursoId);
+    }
+}
+EOFCONTROLLER
+
+echo "   ✓ Endpoints agregados en InscripcionController.java"
+
+# 3. Modificar student-inscripcion-view.tsx
+echo ""
+echo "3. Modificando student-inscripcion-view.tsx..."
+
+sed -i 's/<SelectItem value="ACADEMICA">Académica<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+sed -i 's/<SelectItem value="DEPORTIVA">Deportiva<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+sed -i 's/<SelectItem value="SOCIECONOMICA">Socioeconómica<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+sed -i 's/<SelectItem value="CULTURAL">Cultural<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+
+# Cambiar redirección
+sed -i 's/window.location.reload()/window.location.href = "\/dashboard"/g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+sed -i 's/Ver Mis Cursos/Ir a Mis Cursos/g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+
+echo "   ✓ student-inscripcion-view.tsx actualizado"
+
+# 4. Modificar template-method-inscripcion.tsx
+echo ""
+echo "4. Modificando template-method-inscripcion.tsx..."
+
+sed -i 's/<SelectItem value="ACADEMICA">Académica<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx
+sed -i 's/<SelectItem value="DEPORTIVA">Deportiva<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx
+sed -i 's/<SelectItem value="SOCIECONOMICA">Socioeconómica<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx
+sed -i 's/<SelectItem value="CULTURAL">Cultural<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx
+
+echo "   ✓ template-method-inscripcion.tsx actualizado"
+
+echo ""
+echo "======================================"
+echo "✓ Todos los cambios aplicados exitosamente"
+echo "======================================"
+echo ""
+echo "Archivos modificados:"
+echo "  1. edulearn-api/src/main/java/com/edulearn/patterns/comportamiento/template_method/InscripcionBeca.java"
+echo "  2. edulearn-api/src/main/java/com/edulearn/controller/InscripcionController.java"
+echo "  3. edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx"
+echo "  4. edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx"
+echo ""
+echo "Backups guardados con extensión .backup"
+echo ""
+echo "Siguiente paso: Compilar el backend con 'cd edulearn-api && mvn clean compile'"

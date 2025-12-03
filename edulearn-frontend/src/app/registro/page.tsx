@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GraduationCap, UserCircle, Briefcase } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 
@@ -71,7 +72,7 @@ export default function RegistroPage() {
         <CardHeader className="space-y-2">
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">📚</span>
+              <GraduationCap className="w-6 h-6 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold text-foreground">EduLearn</span>
           </div>
@@ -146,8 +147,8 @@ export default function RegistroPage() {
               <label className="text-sm font-medium text-foreground block">Tipo de Usuario</label>
               <div className="space-y-2">
                 {[
-                  { value: 'estudiante', label: 'Estudiante', icon: '👨‍🎓' },
-                  { value: 'profesor', label: 'Profesor', icon: '👨‍🏫' }
+                  { value: 'estudiante', label: 'Estudiante', Icon: UserCircle },
+                  { value: 'profesor', label: 'Profesor', Icon: Briefcase }
                 ].map((option) => (
                   <label
                     key={option.value}
@@ -165,7 +166,9 @@ export default function RegistroPage() {
                       onChange={(e) => setFormData({ ...formData, tipoUsuario: e.target.value })}
                       className="w-4 h-4"
                     />
-                    <span className="text-xl">{option.icon}</span>
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <option.Icon className="w-5 h-5 text-primary" />
+                    </div>
                     <span className="font-medium">{option.label}</span>
                   </label>
                 ))}
