@@ -86,7 +86,7 @@ public class InscripcionTemplateService {
         
         // Verificar que no esté ya inscrito
         List<Inscripcion> inscripcionesExistentes = inscripcionRepository.findByEstudianteId(solicitud.getEstudianteId());
-        boolean yaInscrito = inscripcionesExistentes.stream()
+        boolean yaInscrito = inscripcionesExistentes != null && inscripcionesExistentes.stream()
                 .anyMatch(i -> i.getCursoId().equals(solicitud.getCursoId()));
         
         if (yaInscrito) {
@@ -222,7 +222,7 @@ public class InscripcionTemplateService {
         
         // Verificar si ya está inscrito
         List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteId(estudianteId);
-        boolean yaInscrito = inscripciones.stream()
+        boolean yaInscrito = inscripciones != null && inscripciones.stream()
                 .anyMatch(i -> i.getCursoId().equals(cursoId));
         
         if (yaInscrito) {

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, XCircle, Clock, Info, FileText, CreditCard, Award, User, BookOpen } from 'lucide-react'
+import { CheckCircle2, XCircle, Clock, Info, FileText, CreditCard, Award } from 'lucide-react'
 
 interface TipoInscripcion {
   tipo: string
@@ -67,7 +67,7 @@ export default function TemplateMethodInscripcion() {
 
   // Datos del formulario
   const [formData, setFormData] = useState({
-    estudianteId: 4,
+    estudianteId: 0,
     cursoId: '',
     tipoInscripcion: '',
     aceptaTerminos: false,
@@ -89,12 +89,42 @@ export default function TemplateMethodInscripcion() {
 
   // Estado para la demo
   const [demoInfo, setDemoInfo] = useState<any>(null)
+  const [usuarioInvalido, setUsuarioInvalido] = useState(false)
 
   // Cargar tipos de inscripción al montar el componente
   useEffect(() => {
     fetchTiposInscripcion()
     fetchCursosDisponibles()
     fetchDemoInfo()
+
+    // Obtener estudiante ID del usuario autenticado
+    const usuarioStr = localStorage.getItem('usuario')
+    if (usuarioStr) {
+      const usuario = JSON.parse(usuarioStr)
+      setFormData(prev => ({ ...prev, estudianteId: usuario.id }))
+
+      // Validar que el estudiante existe en el backend
+      fetch(`http://localhost:8080/api/estudiantes/${usuario.id}`)
+        .then(response => {
+          if (!response.ok) {
+            setUsuarioInvalido(true)
+            // Auto-logout después de 3 segundos si el usuario es inválido
+            setTimeout(() => {
+              localStorage.clear()
+              window.location.href = '/'
+            }, 3000)
+          }
+        })
+        .catch(() => {
+          setUsuarioInvalido(true)
+          setTimeout(() => {
+            localStorage.clear()
+            window.location.href = '/'
+          }, 3000)
+        })
+    } else {
+      setUsuarioInvalido(true)
+    }
   }, [])
 
   // Cargar pasos cuando se selecciona un tipo
@@ -231,13 +261,36 @@ export default function TemplateMethodInscripcion() {
         </Badge>
       </div>
 
+      {usuarioInvalido && (
+        <Alert variant="destructive">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle>Sesión no válida</AlertTitle>
+          <AlertDescription>
+            Tu usuario no está registrado como estudiante en el sistema.
+            Serás redirigido al inicio de sesión en 3 segundos...
+            <div className="mt-2">
+              <Button
+                onClick={() => {
+                  localStorage.clear()
+                  window.location.href = '/'
+                }}
+                variant="outline"
+                size="sm"
+              >
+                Ir al Login Ahora
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="demo">
             <Info className="h-4 w-4 mr-2" />
             Demo del Patrón
           </TabsTrigger>
-          <TabsTrigger value="inscripcion">
+          <TabsTrigger value="inscripcion" disabled={usuarioInvalido}>
             <FileText className="h-4 w-4 mr-2" />
             Nueva Inscripción
           </TabsTrigger>
@@ -341,6 +394,8 @@ export default function TemplateMethodInscripcion() {
                             value={formData.estudianteId}
                             onChange={(e) => setFormData({ ...formData, estudianteId: parseInt(e.target.value) })}
                             required
+                            disabled
+                            className="bg-muted"
                           />
                         </div>
                         <div className="space-y-2">

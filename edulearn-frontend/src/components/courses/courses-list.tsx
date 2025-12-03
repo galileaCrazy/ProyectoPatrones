@@ -49,10 +49,21 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
 
         const usuario = JSON.parse(usuarioStr)
         const userId = usuario.id
-        const userRole = usuario.tipoUsuario
+
+        // Mapear rol del frontend al backend
+        const rolMap: Record<string, string> = {
+          'student': 'estudiante',
+          'professor': 'profesor',
+          'admin': 'administrador'
+        }
+
+        const rolBackend = rolMap[role] || 'estudiante'
+
+        // Usar endpoint con Chain of Responsibility pattern
+        const url = `http://localhost:8080/api/cursos/por-usuario/${userId}?rol=${rolBackend}`
 
         // Llamar al endpoint del backend
-       const response = await fetch("http://localhost:8080/api/cursos")
+        const response = await fetch(url)
 
         if (!response.ok) {
           const errorText = await response.text()
@@ -73,7 +84,7 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
     }
 
     fetchCourses()
-  }, [])
+  }, [role])
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)

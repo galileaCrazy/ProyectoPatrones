@@ -162,9 +162,13 @@ export function ModuleTree({ cursoId, onNodeSelect }: ModuleTreeProps) {
           {treeData.map((node) => (
             <ContentTreeNode
               key={node.id}
-              node={convertirNodoATreeNode(node)}
+              contentItem={convertirNodoATreeNode(node)}
               level={0}
-              onNodeClick={(n) => handleNodeClick(convertirTreeNodeANodo(n))}
+              role="ESTUDIANTE"
+              onEditModule={(nodeId) => {
+                const selectedNode = findNodeById(treeData, parseInt(nodeId))
+                if (selectedNode) handleNodeClick(selectedNode)
+              }}
             />
           ))}
         </div>
@@ -266,4 +270,15 @@ function mapearTipoContenido(node: TreeNode): "video" | "lecture" | "task" | "qu
   }
 
   return "lecture"
+}
+
+function findNodeById(nodes: TreeNode[], id: number): TreeNode | null {
+  for (const node of nodes) {
+    if (node.id === id) return node
+    if (node.hijos && node.hijos.length > 0) {
+      const found = findNodeById(node.hijos, id)
+      if (found) return found
+    }
+  }
+  return null
 }

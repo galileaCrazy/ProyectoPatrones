@@ -5,7 +5,7 @@ import Navigation from '@/components/layout/navigation'
 import DashboardContent from '@/components/dashboard/dashboard-content'
 import CoursesListView from '@/components/courses/courses-list'
 import CourseBuilderView from '@/components/courses/course-builder'
-import CourseDetailView from '@/components/courses/course-detail'
+import CourseDetailMediator from '@/components/courses/course-detail-mediator'
 import StudentsManagementView from '@/components/students/students-management'
 import EvaluationsView from '@/components/evaluations/evaluations-list'
 import EvaluationGradeView from '@/components/evaluations/evaluation-grade'
@@ -40,7 +40,7 @@ export default function Dashboard({ role, onLogout }: DashboardProps) {
           onCreateCourse={() => setCurrentView('create-course')}
         />
       case 'course-detail':
-        return <CourseDetailView courseId={selectedCourseId} role={role} onBack={() => setCurrentView('courses')} />
+        return <CourseDetailMediator courseId={selectedCourseId} role={role} onBack={() => setCurrentView('courses')} />
       case 'create-course':
         return <CourseBuilderView
           onClose={() => setCurrentView('courses')}
