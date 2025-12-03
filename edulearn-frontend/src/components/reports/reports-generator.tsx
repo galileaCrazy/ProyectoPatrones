@@ -54,10 +54,18 @@ export default function ReportsView() {
   const fetchReportes = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8080/api/reportes')
+      // Agregar timestamp para evitar caché
+      const response = await fetch(`http://localhost:8080/api/reportes?t=${Date.now()}`, {
+        cache: 'no-store'
+      })
       if (response.ok) {
         const data = await response.json()
-        setReportes(data)
+        // Ordenar por fecha de generación descendente (más recientes primero)
+        const sortedData = data.sort((a: ReporteGenerado, b: ReporteGenerado) => {
+          return new Date(b.fechaGeneracion).getTime() - new Date(a.fechaGeneracion).getTime()
+        })
+        console.log('Reportes cargados:', sortedData.length)
+        setReportes(sortedData)
       }
     } catch (error) {
       console.error('Error al cargar reportes:', error)
@@ -81,8 +89,9 @@ export default function ReportsView() {
 
       if (response.ok) {
         const data = await response.json()
+        // Recargar la lista de reportes primero
+        await fetchReportes()
         alert(`Reporte generado exitosamente\n\nID: ${data.reporteId}\nTipo: ${data.tipoReporte}\nFormato: ${data.formato}`)
-        fetchReportes()
       } else {
         alert('Error al generar reporte')
       }
