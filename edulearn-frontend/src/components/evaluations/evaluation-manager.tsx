@@ -14,7 +14,6 @@ import {
   ScheduleEvaluationCommand,
   Evaluation
 } from '@/patterns/command/evaluation-commands'
-import AdvancedSearchBar from '@/components/search/advanced-search-bar'
 
 interface EvaluationManagerProps {
   role: 'student' | 'professor' | 'admin'
@@ -35,7 +34,6 @@ interface EvaluationsByCourse {
 
 export default function EvaluationManager({ role }: EvaluationManagerProps) {
   const [evaluationsByCourse, setEvaluationsByCourse] = useState<EvaluationsByCourse>({})
-  const [filteredEvaluationsByCourse, setFilteredEvaluationsByCourse] = useState<EvaluationsByCourse>({})
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [commandManager] = useState(() => new CommandManager())
@@ -44,7 +42,6 @@ export default function EvaluationManager({ role }: EvaluationManagerProps) {
   const [showHistory, setShowHistory] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<number | 'all'>('all')
-  const [allEvaluations, setAllEvaluations] = useState<Evaluation[]>([])
 
   const [formData, setFormData] = useState<Partial<Evaluation>>({
     nombre: '',
@@ -102,9 +99,6 @@ export default function EvaluationManager({ role }: EvaluationManagerProps) {
           intentosPermitidos: evaluation.intentosPermitidos
         }))
 
-        // Guardar todas las evaluaciones para búsqueda
-        setAllEvaluations(mappedData)
-
         // Agrupar evaluaciones por curso
         const grouped: EvaluationsByCourse = {}
         mappedData.forEach((evaluation: Evaluation) => {
@@ -119,7 +113,6 @@ export default function EvaluationManager({ role }: EvaluationManagerProps) {
         })
 
         setEvaluationsByCourse(grouped)
-        setFilteredEvaluationsByCourse(grouped)
       }
     } catch (error) {
       console.error('Error al cargar evaluaciones:', error)
@@ -287,41 +280,13 @@ export default function EvaluationManager({ role }: EvaluationManagerProps) {
     }
   }
 
-  const handleSearchResults = (results: Evaluation[]) => {
-    // Reagrupar resultados de búsqueda por curso
-    const grouped: EvaluationsByCourse = {}
-    results.forEach((evaluation: Evaluation) => {
-      const courseId = evaluation.cursoId || 0
-      if (!grouped[courseId]) {
-        const course = courses.find(c => c.id === courseId) || { id: courseId, nombre: 'Sin asignar', codigo: 'N/A' }
-        grouped[courseId] = {
-          course,
-          evaluations: []
-        }
-      }
-      grouped[courseId].evaluations.push(evaluation)
-    })
-    setFilteredEvaluationsByCourse(grouped)
-  }
-
   const getFilteredCourses = () => {
     if (selectedCourseFilter === 'all') {
-      return Object.values(filteredEvaluationsByCourse)
+      return Object.values(evaluationsByCourse)
     }
-    const filtered = filteredEvaluationsByCourse[selectedCourseFilter]
+    const filtered = evaluationsByCourse[selectedCourseFilter]
     return filtered ? [filtered] : []
   }
-
-  const searchSuggestions = [
-    'nombre',
-    'tipoEvaluacion',
-    'estado',
-    'puntajeMaximo',
-    'duracionMinutos',
-    'intentosPermitidos',
-    'fechaInicio',
-    'fechaLimite'
-  ]
 
   if (loading) {
     return (
@@ -394,15 +359,6 @@ export default function EvaluationManager({ role }: EvaluationManagerProps) {
             </div>
           </CardContent>
         </Card>
-
-        {/* Búsqueda Avanzada */}
-        <AdvancedSearchBar
-          data={allEvaluations}
-          onSearchResults={handleSearchResults}
-          placeholder="Buscar evaluaciones... (ej: estado:Publicada AND tipoEvaluacion:Examen)"
-          suggestions={searchSuggestions}
-          showHelp={true}
-        />
       </div>
 
       {/* Controles de Undo/Redo */}

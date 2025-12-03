@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { SearchEngine } from '@/patterns/interpreter/search-interpreter'
 
 interface Curso {
   id: number
@@ -28,8 +29,11 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
   const [selectedFilter, setSelectedFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [courses, setCourses] = useState<Curso[]>([])
+  const [filteredCourses, setFilteredCourses] = useState<Curso[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showAdvancedHelp, setShowAdvancedHelp] = useState(false)
+  const searchEngine = new SearchEngine()
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -59,6 +63,7 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
         const data = await response.json()
         console.log('Cursos cargados:', data)
         setCourses(data)
+        setFilteredCourses(data)
       } catch (err) {
         console.error('Error al cargar cursos:', err)
         setError(err instanceof Error ? err.message : 'Error desconocido')
@@ -70,11 +75,56 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
     fetchCourses()
   }, [])
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.nombre.toLowerCase().includes(searchQuery.toLowerCase())
-    if (selectedFilter === 'all') return matchesSearch
-    return matchesSearch && course.tipoCurso.toLowerCase() === selectedFilter.toLowerCase()
-  })
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+
+    if (!query.trim()) {
+      // Si no hay búsqueda, aplicar solo filtro de tipo
+      const filtered = selectedFilter === 'all'
+        ? courses
+        : courses.filter(c => c.tipoCurso.toLowerCase() === selectedFilter.toLowerCase())
+      setFilteredCourses(filtered)
+      return
+    }
+
+    try {
+      // Usar el motor de búsqueda del patrón Interpreter
+      let results = searchEngine.search(courses, query)
+
+      // Aplicar filtro de tipo adicional
+      if (selectedFilter !== 'all') {
+        results = results.filter(c => c.tipoCurso.toLowerCase() === selectedFilter.toLowerCase())
+      }
+
+      setFilteredCourses(results)
+    } catch (error) {
+      console.error('Error en búsqueda:', error)
+      setFilteredCourses([])
+    }
+  }
+
+  const handleFilterChange = (filter: string) => {
+    setSelectedFilter(filter)
+
+    // Re-aplicar búsqueda con nuevo filtro
+    if (!searchQuery.trim()) {
+      const filtered = filter === 'all'
+        ? courses
+        : courses.filter(c => c.tipoCurso.toLowerCase() === filter.toLowerCase())
+      setFilteredCourses(filtered)
+    } else {
+      try {
+        let results = searchEngine.search(courses, searchQuery)
+        if (filter !== 'all') {
+          results = results.filter(c => c.tipoCurso.toLowerCase() === filter.toLowerCase())
+        }
+        setFilteredCourses(results)
+      } catch (error) {
+        console.error('Error en búsqueda:', error)
+        setFilteredCourses([])
+      }
+    }
+  }
 
   if (loading) {
     return (
@@ -119,33 +169,92 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
         )}
       </div>
 
-      {/* Filters */}
-      <div className="mb-6 flex gap-4 items-center flex-wrap">
-        <div className="flex-1 min-w-64">
-          <input
-            type="text"
-            placeholder="Buscar cursos..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div className="flex gap-2">
-          {['all', 'Virtual', 'Híbrido', 'Presencial'].map((filter) => (
-            <Button
-              key={filter}
-              onClick={() => setSelectedFilter(filter)}
-              className={`${
-                selectedFilter === filter
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-            >
-              {filter === 'all' ? 'Todos' : filter}
-            </Button>
-          ))}
-        </div>
-      </div>
+      {/* Búsqueda Avanzada */}
+      <Card className="mb-6 border-border/50">
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            <div className="flex gap-3 items-start">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Buscar cursos... (ej: nombre:Programación AND estado:Activo)"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                />
+              </div>
+              {searchQuery && (
+                <Button
+                  onClick={() => handleSearch('')}
+                  variant="outline"
+                  className="text-sm"
+                >
+                  Limpiar
+                </Button>
+              )}
+              <Button
+                onClick={() => setShowAdvancedHelp(!showAdvancedHelp)}
+                variant="outline"
+                className="text-sm"
+              >
+                {showAdvancedHelp ? 'Ocultar ayuda' : 'Ayuda'}
+              </Button>
+            </div>
+
+            {showAdvancedHelp && (
+              <div className="bg-muted/30 rounded-lg p-4">
+                <h3 className="font-semibold text-foreground mb-3 text-sm">
+                  Sintaxis de búsqueda avanzada
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground mb-2 font-medium">Campos disponibles:</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">nombre</code> - Nombre del curso</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">codigo</code> - Código del curso</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">estado</code> - Estado (Activo/Inactivo)</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">tipoCurso</code> - Tipo (Virtual/Híbrido/Presencial)</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">duracion</code> - Duración en horas</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-2 font-medium">Operadores:</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">campo:valor</code> - Contiene texto</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">campo&gt;=valor</code> - Mayor o igual</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">expr AND expr</code> - Ambas condiciones</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">expr OR expr</code> - Al menos una</li>
+                    </ul>
+                    <p className="text-muted-foreground mt-3 font-medium">Ejemplos:</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">nombre:Programación</code></li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">estado:Activo AND tipoCurso:Virtual</code></li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">duracion&gt;=40</code></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 flex-wrap">
+              <span className="text-sm text-muted-foreground self-center">Tipo de curso:</span>
+              {['all', 'Virtual', 'Híbrido', 'Presencial'].map((filter) => (
+                <Button
+                  key={filter}
+                  onClick={() => handleFilterChange(filter)}
+                  className={`text-sm ${
+                    selectedFilter === filter
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {filter === 'all' ? 'Todos' : filter}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Courses Grid */}
       {filteredCourses.length === 0 ? (

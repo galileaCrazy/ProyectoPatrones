@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import AdvancedSearchBar from '@/components/search/advanced-search-bar'
 
 interface ReporteGenerado {
   id: number
@@ -26,7 +25,6 @@ export default function ReportsView() {
   const [format, setFormat] = useState('PDF')
   const [generating, setGenerating] = useState(false)
   const [reportes, setReportes] = useState<ReporteGenerado[]>([])
-  const [filteredReportes, setFilteredReportes] = useState<ReporteGenerado[]>([])
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedCourse, setSelectedCourse] = useState<number | 'all'>('all')
@@ -60,7 +58,6 @@ export default function ReportsView() {
       if (response.ok) {
         const data = await response.json()
         setReportes(data)
-        setFilteredReportes(data)
       }
     } catch (error) {
       console.error('Error al cargar reportes:', error)
@@ -109,18 +106,6 @@ export default function ReportsView() {
         return tipo
     }
   }
-
-  const handleSearchResults = (results: ReporteGenerado[]) => {
-    setFilteredReportes(results)
-  }
-
-  const searchSuggestions = [
-    'tipoReporte',
-    'formato',
-    'titulo',
-    'estado',
-    'fechaGeneracion'
-  ]
 
   const handleViewReport = async (reporteId: number) => {
     try {
@@ -184,17 +169,6 @@ export default function ReportsView() {
         <p className="text-muted-foreground">
           Generación de reportes de cursos, estudiantes y calificaciones
         </p>
-      </div>
-
-      {/* Búsqueda Avanzada */}
-      <div className="mb-6">
-        <AdvancedSearchBar
-          data={reportes}
-          onSearchResults={handleSearchResults}
-          placeholder="Buscar reportes... (ej: tipoReporte:ESTUDIANTES AND formato:PDF)"
-          suggestions={searchSuggestions}
-          showHelp={true}
-        />
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -326,13 +300,13 @@ export default function ReportsView() {
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : filteredReportes.length === 0 ? (
+            ) : reportes.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                No se encontraron reportes
+                No hay reportes generados todavía
               </p>
             ) : (
               <div className="space-y-3">
-                {filteredReportes.slice(0, 10).map((reporte) => (
+                {reportes.slice(0, 10).map((reporte) => (
                   <div
                     key={reporte.id}
                     className="flex justify-between items-center p-4 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors"

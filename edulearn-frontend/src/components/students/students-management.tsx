@@ -3,9 +3,12 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { SearchEngine } from '@/patterns/interpreter/search-interpreter'
 
 export default function StudentsManagementView() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [showAdvancedHelp, setShowAdvancedHelp] = useState(false)
+  const searchEngine = new SearchEngine()
 
   const students = [
     { id: '001', name: 'Ana Torres', email: 'ana.torres@uni.edu', courses: 4, average: 85 },
@@ -15,10 +18,24 @@ export default function StudentsManagementView() {
     { id: '005', name: 'Laura Martínez', email: 'laura.martinez@uni.edu', courses: 5, average: 95 },
   ]
 
-  const filteredStudents = students.filter(s =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.email.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const [filteredStudents, setFilteredStudents] = useState(students)
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+
+    if (!query.trim()) {
+      setFilteredStudents(students)
+      return
+    }
+
+    try {
+      const results = searchEngine.search(students, query)
+      setFilteredStudents(results)
+    } catch (error) {
+      console.error('Error en búsqueda:', error)
+      setFilteredStudents([])
+    }
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -33,16 +50,76 @@ export default function StudentsManagementView() {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Buscar por nombre o email..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
+      {/* Búsqueda Avanzada */}
+      <Card className="mb-6 border-border/50">
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            <div className="flex gap-3 items-start">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Buscar estudiantes... (ej: name:Ana AND average>=90)"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                />
+              </div>
+              {searchQuery && (
+                <Button
+                  onClick={() => handleSearch('')}
+                  variant="outline"
+                  className="text-sm"
+                >
+                  Limpiar
+                </Button>
+              )}
+              <Button
+                onClick={() => setShowAdvancedHelp(!showAdvancedHelp)}
+                variant="outline"
+                className="text-sm"
+              >
+                {showAdvancedHelp ? 'Ocultar ayuda' : 'Ayuda'}
+              </Button>
+            </div>
+
+            {showAdvancedHelp && (
+              <div className="bg-muted/30 rounded-lg p-4">
+                <h3 className="font-semibold text-foreground mb-3 text-sm">
+                  Sintaxis de búsqueda avanzada
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground mb-2 font-medium">Campos disponibles:</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">id</code> - ID del estudiante</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">name</code> - Nombre del estudiante</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">email</code> - Correo electrónico</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">courses</code> - Número de cursos</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">average</code> - Promedio</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-2 font-medium">Operadores:</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">campo:valor</code> - Contiene texto</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">campo&gt;=valor</code> - Mayor o igual</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">campo&lt;valor</code> - Menor que</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">expr AND expr</code> - Ambas condiciones</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">expr OR expr</code> - Al menos una</li>
+                    </ul>
+                    <p className="text-muted-foreground mt-3 font-medium">Ejemplos:</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">name:Ana</code></li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">average&gt;=90</code></li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded text-xs">courses&gt;=4 AND average&gt;85</code></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Table */}
       <Card className="border-border/50">
