@@ -30,81 +30,138 @@ public abstract class ProcesoInscripcionTemplate {
     /**
      * TEMPLATE METHOD - Define el esqueleto del algoritmo de inscripción
      * Este método es final para evitar que las subclases cambien la estructura
+     *
+     * Pasos Fijos (obligatorios para todas las modalidades):
+     * - aceptarTerminosYCondiciones(): Requisito obligatorio inicial
+     * - registrarInscripcionEnBD(): Persistencia final de la inscripción
+     *
+     * Pasos Variables (implementados por cada modalidad):
+     * - realizarValidacionEspecifica(): Lógica única de cada modalidad
+     * - otorgarBeneficiosAdicionales(): Beneficios específicos por modalidad
      */
     public final ResultadoInscripcion procesarInscripcion(
-            Estudiante estudiante, 
-            Curso curso, 
+            Estudiante estudiante,
+            Curso curso,
             SolicitudInscripcion solicitud) {
-        
+
         fechaInicio = LocalDateTime.now();
         pasos.clear();
-        
+
         ResultadoInscripcion resultado = new ResultadoInscripcion();
         resultado.setEstudianteId(estudiante.getId());
         resultado.setCursoId(curso.getId());
         resultado.setTipoInscripcion(getTipoInscripcion());
         resultado.setFechaInicio(fechaInicio);
-        
+
         try {
-            // Paso 1: Validar requisitos previos (común a todos)
-            ResultadoPaso paso1 = validarRequisitosPrevios(estudiante, curso);
+            // PASO FIJO 1: Aceptar términos y condiciones (obligatorio para todos)
+            ResultadoPaso paso1 = aceptarTerminosYCondiciones(solicitud);
             pasos.add(paso1);
             if (!paso1.isExitoso()) {
-                return finalizarConError(resultado, "Requisitos previos no cumplidos: " + paso1.getMensaje());
+                return finalizarConError(resultado, "Términos y condiciones no aceptados: " + paso1.getMensaje());
             }
-            
-            // Paso 2: Verificar disponibilidad (común a todos)
-            ResultadoPaso paso2 = verificarDisponibilidad(curso);
+
+            // Paso 2: Validar requisitos previos (común a todos)
+            ResultadoPaso paso2 = validarRequisitosPrevios(estudiante, curso);
             pasos.add(paso2);
             if (!paso2.isExitoso()) {
-                return finalizarConError(resultado, "Curso no disponible: " + paso2.getMensaje());
+                return finalizarConError(resultado, "Requisitos previos no cumplidos: " + paso2.getMensaje());
             }
-            
-            // Paso 3: Validar documentación específica (varía según tipo)
-            ResultadoPaso paso3 = validarDocumentacion(estudiante, solicitud);
+
+            // Paso 3: Verificar disponibilidad (común a todos)
+            ResultadoPaso paso3 = verificarDisponibilidad(curso);
             pasos.add(paso3);
             if (!paso3.isExitoso()) {
-                return finalizarConError(resultado, "Documentación inválida: " + paso3.getMensaje());
+                return finalizarConError(resultado, "Curso no disponible: " + paso3.getMensaje());
             }
-            
-            // Paso 4: Procesar pago o verificación económica (varía según tipo)
-            ResultadoPaso paso4 = procesarAspectoEconomico(estudiante, curso, solicitud);
+
+            // PASO VARIABLE 1: Realizar validación específica de la modalidad
+            ResultadoPaso paso4 = realizarValidacionEspecifica(estudiante, curso, solicitud);
             pasos.add(paso4);
             if (!paso4.isExitoso()) {
-                return finalizarConError(resultado, "Aspecto económico no resuelto: " + paso4.getMensaje());
+                return finalizarConError(resultado, "Validación específica fallida: " + paso4.getMensaje());
             }
-            
-            // Paso 5: Aplicar beneficios o descuentos (hook - opcional según tipo)
-            ResultadoPaso paso5 = aplicarBeneficios(estudiante, curso, solicitud);
+
+            // PASO VARIABLE 2: Otorgar beneficios adicionales según modalidad (hook)
+            ResultadoPaso paso5 = otorgarBeneficiosAdicionales(estudiante, curso, solicitud);
             pasos.add(paso5);
-            // Los beneficios son opcionales, continuamos aunque falle
-            
-            // Paso 6: Registrar inscripción (común a todos)
-            ResultadoPaso paso6 = registrarInscripcion(estudiante, curso);
+            // Los beneficios adicionales no bloquean el proceso
+
+            // PASO FIJO 2: Registrar inscripción en la base de datos (obligatorio para todos)
+            ResultadoPaso paso6 = registrarInscripcionEnBD(estudiante, curso, solicitud, resultado);
             pasos.add(paso6);
             if (!paso6.isExitoso()) {
-                return finalizarConError(resultado, "Error al registrar: " + paso6.getMensaje());
+                return finalizarConError(resultado, "Error al registrar en BD: " + paso6.getMensaje());
             }
-            
+
             // Paso 7: Enviar notificaciones (común a todos)
             ResultadoPaso paso7 = enviarNotificaciones(estudiante, curso);
             pasos.add(paso7);
             // Las notificaciones no bloquean el proceso
-            
-            // Paso 8: Generar documentos de confirmación (varía según tipo)
+
+            // Paso 8: Generar documentos de confirmación (común con detalles variables)
             ResultadoPaso paso8 = generarDocumentos(estudiante, curso, solicitud);
             pasos.add(paso8);
-            
+
             // Finalizar exitosamente
             return finalizarExitoso(resultado);
-            
+
         } catch (Exception e) {
             return finalizarConError(resultado, "Error inesperado: " + e.getMessage());
         }
     }
     
+    // ==================== PASOS FIJOS (métodos concretos - obligatorios) ====================
+
+    /**
+     * PASO FIJO 1: Aceptar términos y condiciones
+     * Requisito obligatorio para todas las inscripciones
+     */
+    protected final ResultadoPaso aceptarTerminosYCondiciones(SolicitudInscripcion solicitud) {
+        ResultadoPaso paso = new ResultadoPaso("Aceptación de términos y condiciones");
+
+        if (!solicitud.isAceptaTerminos()) {
+            paso.setExitoso(false);
+            paso.setMensaje("Debe aceptar los términos y condiciones para continuar con la inscripción");
+            return paso;
+        }
+
+        paso.setExitoso(true);
+        paso.setMensaje("Términos y condiciones aceptados correctamente");
+        paso.agregarDetalle("terminosAceptados", "true");
+        paso.agregarDetalle("fechaAceptacion", LocalDateTime.now().toString());
+
+        return paso;
+    }
+
+    /**
+     * PASO FIJO 2: Registrar inscripción en la base de datos
+     * Paso final que persiste la inscripción y su estado en la base de datos
+     * Este método será implementado por el servicio que tiene acceso al repositorio
+     */
+    protected ResultadoPaso registrarInscripcionEnBD(
+            Estudiante estudiante,
+            Curso curso,
+            SolicitudInscripcion solicitud,
+            ResultadoInscripcion resultado) {
+        ResultadoPaso paso = new ResultadoPaso("Registro en base de datos");
+
+        // La persistencia real se maneja en el servicio
+        // Aquí solo preparamos los datos que se deben guardar
+        paso.setExitoso(true);
+        paso.setMensaje("Datos preparados para persistencia en BD");
+        paso.agregarDetalle("estudianteId", String.valueOf(estudiante.getId()));
+        paso.agregarDetalle("cursoId", String.valueOf(curso.getId()));
+        paso.agregarDetalle("modalidad", getTipoInscripcion());
+        paso.agregarDetalle("estadoInscripcion", getEstadoInscripcion());
+        paso.agregarDetalle("certificadoGarantizado", String.valueOf(tieneCertificadoGarantizado()));
+        paso.agregarDetalle("fechaRegistro", LocalDateTime.now().toString());
+
+        return paso;
+    }
+
     // ==================== MÉTODOS COMUNES (no se sobrescriben) ====================
-    
+
     /**
      * Valida requisitos previos del estudiante para inscribirse
      */
@@ -180,67 +237,59 @@ public abstract class ProcesoInscripcionTemplate {
         return paso;
     }
     
-    // ==================== MÉTODOS ABSTRACTOS (deben implementarse) ====================
-    
+    // ==================== MÉTODOS ABSTRACTOS (pasos variables - deben implementarse) ====================
+
     /**
-     * Valida la documentación requerida según el tipo de inscripción
+     * PASO VARIABLE 1: Realizar validación específica según la modalidad
+     *
+     * - InscripcionGratuita: Ninguna validación adicional (solo términos aceptados)
+     * - InscripcionConPago: Procesar el pago y confirmarlo
+     * - InscripcionPorBeca: Validar elegibilidad TECNM y establecer estado pendiente
      */
-    protected abstract ResultadoPaso validarDocumentacion(Estudiante estudiante, SolicitudInscripcion solicitud);
-    
-    /**
-     * Procesa el aspecto económico (pago, verificación de beca, etc.)
-     */
-    protected abstract ResultadoPaso procesarAspectoEconomico(
+    protected abstract ResultadoPaso realizarValidacionEspecifica(
             Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud);
-    
+
+    /**
+     * PASO VARIABLE 2: Otorgar beneficios adicionales según la modalidad
+     *
+     * - InscripcionGratuita: Ninguno
+     * - InscripcionConPago: Certificado Garantizado
+     * - InscripcionPorBeca: Certificado Garantizado
+     */
+    protected abstract ResultadoPaso otorgarBeneficiosAdicionales(
+            Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud);
+
     /**
      * Genera los documentos de confirmación específicos
      */
     protected abstract ResultadoPaso generarDocumentos(
             Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud);
-    
+
     /**
-     * Obtiene el tipo de inscripción
+     * Obtiene el tipo de inscripción (modalidad)
      */
     protected abstract String getTipoInscripcion();
-    
+
+    /**
+     * Obtiene el estado de la inscripción según la modalidad
+     */
+    protected abstract String getEstadoInscripcion();
+
+    /**
+     * Indica si la modalidad otorga certificado garantizado
+     */
+    protected abstract boolean tieneCertificadoGarantizado();
+
     /**
      * Obtiene la descripción del proceso
      */
     public abstract String getDescripcion();
-    
+
     /**
      * Obtiene los pasos específicos de este tipo de inscripción
      */
     public abstract List<String> getPasosEspecificos();
     
-    // ==================== HOOK METHODS (pueden sobrescribirse) ====================
-    
-    /**
-     * Hook para aplicar beneficios o descuentos
-     * Por defecto no aplica ningún beneficio
-     */
-    protected ResultadoPaso aplicarBeneficios(
-            Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud) {
-        ResultadoPaso paso = new ResultadoPaso("Aplicación de beneficios");
-        paso.setExitoso(true);
-        paso.setMensaje("No se aplicaron beneficios adicionales");
-        return paso;
-    }
-    
-    /**
-     * Hook para validaciones adicionales específicas
-     */
-    protected boolean requiereValidacionAdicional() {
-        return false;
-    }
-    
-    /**
-     * Hook para determinar si se genera certificado inmediato
-     */
-    protected boolean generaCertificadoInmediato() {
-        return false;
-    }
     
     // ==================== MÉTODOS AUXILIARES ====================
     

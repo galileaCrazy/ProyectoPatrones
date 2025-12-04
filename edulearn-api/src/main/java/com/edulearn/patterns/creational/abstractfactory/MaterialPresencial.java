@@ -55,10 +55,10 @@ public class MaterialPresencial implements IMaterial {
     @Override
     public Material toEntity() {
         Material material = new Material();
-        material.setNombre(nombre);  // ✅ FIX: Establecer el campo 'nombre' (NOT NULL en BD)
+        material.setNombre(nombre);
         material.setTitulo(nombre);
         material.setDescripcion(descripcion);
-        material.setTipo(Material.TipoMaterial.pdf);  // ✅ FIX: Establecer el enum 'tipo' (NOT NULL en BD)
+        material.setTipo(Material.TipoMaterial.pdf); 
         material.setTipoMaterial(getTipoMaterial());
         material.setRequiereVisualizacion(requiereVisualizacion());
         material.setDuracionSegundos(getDuracionSegundos());

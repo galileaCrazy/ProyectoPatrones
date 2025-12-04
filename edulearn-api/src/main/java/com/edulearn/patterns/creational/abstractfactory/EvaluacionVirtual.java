@@ -43,7 +43,7 @@ public class EvaluacionVirtual implements IEvaluacion {
 
     @Override
     public int getIntentosPermitidos() {
-        return 3; // Múltiples intentos en quizzes virtuales
+        return 3;
     }
 
     @Override
@@ -68,10 +68,10 @@ public class EvaluacionVirtual implements IEvaluacion {
     @Override
     public Evaluacion toEntity() {
         Evaluacion evaluacion = new Evaluacion();
-        evaluacion.setNombre(nombre);  // ✅ FIX: Establecer el campo 'nombre' (NOT NULL en BD)
+        evaluacion.setNombre(nombre);  
         evaluacion.setTitulo(nombre);
         evaluacion.setDescripcion(descripcion);
-        evaluacion.setTipo(getTipoEvaluacion());  // ✅ FIX: Establecer el campo 'tipo' (NOT NULL en BD)
+        evaluacion.setTipo(getTipoEvaluacion());  
         evaluacion.setTipoEvaluacion(getTipoEvaluacion());
         evaluacion.setPuntajeMaximo(getPuntajeMaximo());
         evaluacion.setIntentosPermitidos(getIntentosPermitidos());

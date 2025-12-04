@@ -122,7 +122,13 @@ public class EvaluacionController {
                     // Actualizar fecha límite
                     if (updates.containsKey("fechaLimite")) {
                         String fechaStr = (String) updates.get("fechaLimite");
-                        evaluacion.setFechaCierre(LocalDateTime.parse(fechaStr + "T23:59:59"));
+                        evaluacion.setFechaCierre(LocalDateTime.parse(fechaStr));
+                    }
+
+                    // Actualizar fecha de inicio
+                    if (updates.containsKey("fechaInicio")) {
+                        String fechaStr = (String) updates.get("fechaInicio");
+                        evaluacion.setFechaApertura(LocalDateTime.parse(fechaStr));
                     }
 
                     // Actualizar otros campos si es necesario

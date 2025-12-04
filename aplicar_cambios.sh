@@ -1,0 +1,388 @@
+#!/bin/bash
+
+echo "======================================"
+echo "Aplicando cambios al sistema de inscripciones"
+echo "======================================"
+
+# Backup de archivos
+echo "Creando backups..."
+cp edulearn-api/src/main/java/com/edulearn/patterns/comportamiento/template_method/InscripcionBeca.java edulearn-api/src/main/java/com/edulearn/patterns/comportamiento/template_method/InscripcionBeca.java.backup
+cp edulearn-api/src/main/java/com/edulearn/controller/InscripcionController.java edulearn-api/src/main/java/com/edulearn/controller/InscripcionController.java.backup
+cp edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx.backup
+cp edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx.backup
+
+echo "Backups creados con extensión .backup"
+
+# 1. Modificar InscripcionBeca.java - cambiar validación
+echo ""
+echo "1. Modificando InscripcionBeca.java..."
+
+# Crear archivo temporal con los cambios
+cat > /tmp/inscripcion_beca_nuevo.java << 'EOFBECA'
+package com.edulearn.patterns.comportamiento.template_method;
+
+import com.edulearn.model.Curso;
+import com.edulearn.model.Estudiante;
+import com.edulearn.patterns.comportamiento.template_method.dto.ResultadoPaso;
+import com.edulearn.patterns.comportamiento.template_method.dto.SolicitudInscripcion;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Implementación concreta para inscripciones con beca
+ *
+ * Modalidad: BECA
+ * Estado: Pendiente de Aprobación/Documentación (requiere validación posterior)
+ * Certificado Garantizado: SÍ
+ * Instituciones Elegibles: TECNM, UNAM, IPN
+ *
+ * Validación Específica:
+ * - Validar la elegibilidad por convenio institucional (TECNM, UNAM, IPN únicamente)
+ * - Establecer el estado inicial como "Pendiente de Aprobación/Documentación"
+ *
+ * Beneficio Adicional: Otorgar Certificado Garantizado al finalizar el curso
+ */
+@Component("inscripcionBeca")
+public class InscripcionBeca extends ProcesoInscripcionTemplate {
+
+    // Instituciones elegibles para becas por convenio
+    private static final String CONVENIO_TECNM = "TECNM";
+    private static final String CONVENIO_UNAM = "UNAM";
+    private static final String CONVENIO_IPN = "IPN";
+
+    @Override
+    protected String getTipoInscripcion() {
+        return "BECA";
+    }
+
+    @Override
+    protected String getEstadoInscripcion() {
+        return "Pendiente de Aprobación/Documentación";
+    }
+
+    @Override
+    protected boolean tieneCertificadoGarantizado() {
+        return true;
+    }
+
+    @Override
+    public String getDescripcion() {
+        return "Proceso de inscripción para estudiantes becados por convenio institucional. " +
+               "Instituciones elegibles: TECNM, UNAM, IPN. " +
+               "Estado inicial: Pendiente de Aprobación/Documentación. " +
+               "Incluye certificado garantizado al finalizar.";
+    }
+
+    @Override
+    public List<String> getPasosEspecificos() {
+        return Arrays.asList(
+            "Aceptar términos y condiciones",
+            "Validar requisitos previos",
+            "Verificar disponibilidad de cupo",
+            "Validar elegibilidad por convenio institucional (TECNM, UNAM, IPN)",
+            "Otorgar certificado garantizado",
+            "Registrar inscripción en BD con estado pendiente",
+            "Enviar notificaciones",
+            "Generar certificado de beca"
+        );
+    }
+
+    /**
+     * PASO VARIABLE 1: Realizar validación específica
+     * Para inscripción con beca: Validar elegibilidad por convenio institucional (TECNM, UNAM, IPN)
+     */
+    @Override
+    protected ResultadoPaso realizarValidacionEspecifica(
+            Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud) {
+        ResultadoPaso paso = new ResultadoPaso("Validación de elegibilidad por convenio institucional");
+
+        // Validar tipo de beca
+        if (solicitud.getTipoBeca() == null || solicitud.getTipoBeca().isEmpty()) {
+            paso.setExitoso(false);
+            paso.setMensaje("Debe especificar la institución de procedencia");
+            return paso;
+        }
+
+        // Validar código de beca
+        if (solicitud.getCodigoBeca() == null || solicitud.getCodigoBeca().isEmpty()) {
+            paso.setExitoso(false);
+            paso.setMensaje("Debe proporcionar el código de beca asignado");
+            return paso;
+        }
+
+        String tipoBeca = solicitud.getTipoBeca().toUpperCase();
+        String codigoBeca = solicitud.getCodigoBeca();
+
+        // Validar si pertenece a institución con convenio
+        boolean esConvenioValido = validarConvenio(tipoBeca, codigoBeca);
+
+        if (!esConvenioValido) {
+            paso.setExitoso(false);
+            paso.setMensaje("La institución especificada no tiene convenio activo. " +
+                          "Instituciones válidas: TECNM, UNAM, IPN");
+            paso.agregarDetalle("tipoBecaRecibido", tipoBeca);
+            paso.agregarDetalle("codigoBecaRecibido", codigoBeca);
+            paso.agregarDetalle("institucionesValidas", "TECNM, UNAM, IPN");
+            return paso;
+        }
+
+        paso.setExitoso(true);
+        paso.setMensaje("Elegibilidad verificada - Convenio institucional válido con " + tipoBeca +
+                       ". Estado: Pendiente de Aprobación/Documentación");
+        paso.agregarDetalle("codigoBeca", codigoBeca);
+        paso.agregarDetalle("tipoBeca", tipoBeca);
+        paso.agregarDetalle("convenio", tipoBeca);
+        paso.agregarDetalle("estadoInicial", "Pendiente de Aprobación/Documentación");
+        paso.agregarDetalle("requiereDocumentacion", "true");
+        paso.agregarDetalle("porcentajeCobertura", "100%");
+
+        return paso;
+    }
+
+    /**
+     * PASO VARIABLE 2: Otorgar beneficios adicionales
+     * Para inscripción con beca: Otorgar Certificado Garantizado
+     */
+    @Override
+    protected ResultadoPaso otorgarBeneficiosAdicionales(
+            Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud) {
+        ResultadoPaso paso = new ResultadoPaso("Otorgamiento de certificado garantizado y beneficios de beca");
+
+        String tipoBeca = solicitud.getTipoBeca();
+        List<String> beneficiosAdicionales = getBeneficiosPorTipo(tipoBeca);
+
+        paso.setExitoso(true);
+        paso.setMensaje("Certificado garantizado otorgado - Beneficios de beca aplicados");
+        paso.agregarDetalle("certificadoGarantizado", "true");
+        paso.agregarDetalle("tipoBeca", tipoBeca);
+        paso.agregarDetalle("beneficiosPrincipales", String.join(", ", beneficiosAdicionales));
+        paso.agregarDetalle("exencionCosto", "100%");
+        paso.agregarDetalle("requisito", "Completar documentación para activar inscripción");
+
+        return paso;
+    }
+
+    @Override
+    protected ResultadoPaso generarDocumentos(
+            Estudiante estudiante, Curso curso, SolicitudInscripcion solicitud) {
+        ResultadoPaso paso = new ResultadoPaso("Generación de certificado de beca");
+
+        String numeroCertificado = "CERT-BECA-" + LocalDateTime.now().getYear() + "-" +
+                                   UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        String numeroComprobante = "INS-B-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        paso.setExitoso(true);
+        paso.setMensaje("Certificado de beca y comprobante generados exitosamente. " +
+                       "Estado: Pendiente de documentación");
+        paso.agregarDetalle("numeroCertificado", numeroCertificado);
+        paso.agregarDetalle("numeroComprobante", numeroComprobante);
+        paso.agregarDetalle("tipoBeca", solicitud.getTipoBeca());
+        paso.agregarDetalle("codigoBeca", solicitud.getCodigoBeca());
+        paso.agregarDetalle("estadoActual", "Pendiente de Aprobación/Documentación");
+        paso.agregarDetalle("urlCertificado", "/api/inscripciones/certificados/" + numeroCertificado);
+        paso.agregarDetalle("urlComprobante", "/api/inscripciones/documentos/" + numeroComprobante);
+        paso.agregarDetalle("modalidad", "BECA");
+
+        return paso;
+    }
+
+    // Métodos auxiliares
+
+    /**
+     * Valida si el convenio con la institución es válido
+     * Solo acepta: TECNM, UNAM, IPN
+     */
+    private boolean validarConvenio(String tipoBeca, String codigoBeca) {
+        // Validar que el código de beca tenga el formato correcto
+        if (codigoBeca == null || !codigoBeca.startsWith("BECA-")) {
+            return false;
+        }
+
+        // Validar instituciones con convenio - SOLO TECNM, UNAM, IPN
+        String tipoBecaUpper = tipoBeca.toUpperCase();
+
+        return tipoBecaUpper.equals(CONVENIO_TECNM) ||
+               tipoBecaUpper.equals(CONVENIO_UNAM) ||
+               tipoBecaUpper.equals(CONVENIO_IPN);
+    }
+
+    /**
+     * Obtiene los beneficios específicos según el tipo de beca
+     * Solo maneja: TECNM, UNAM, IPN
+     */
+    private List<String> getBeneficiosPorTipo(String tipoBeca) {
+        String tipoBecaUpper = tipoBeca != null ? tipoBeca.toUpperCase() : "";
+
+        switch (tipoBecaUpper) {
+            case "TECNM":
+                return Arrays.asList(
+                    "100% exención de matrícula (convenio TECNM)",
+                    "Certificado garantizado",
+                    "Acceso completo a contenido del curso",
+                    "Material didáctico incluido",
+                    "Soporte técnico prioritario"
+                );
+            case "UNAM":
+                return Arrays.asList(
+                    "100% exención de matrícula (convenio UNAM)",
+                    "Certificado garantizado",
+                    "Acceso completo a contenido del curso",
+                    "Material didáctico incluido"
+                );
+            case "IPN":
+                return Arrays.asList(
+                    "100% exención de matrícula (convenio IPN)",
+                    "Certificado garantizado",
+                    "Acceso completo a contenido del curso",
+                    "Material didáctico incluido"
+                );
+            default:
+                return Arrays.asList(
+                    "Beneficios básicos de beca",
+                    "Certificado garantizado"
+                );
+        }
+    }
+}
+EOFBECA
+
+cp /tmp/inscripcion_beca_nuevo.java edulearn-api/src/main/java/com/edulearn/patterns/comportamiento/template_method/InscripcionBeca.java
+echo "   ✓ InscripcionBeca.java actualizado"
+
+# 2. Agregar endpoints en InscripcionController.java
+echo ""
+echo "2. Agregando endpoints en InscripcionController.java..."
+
+# Buscar la última línea del archivo (el último })
+sed -i '$ d' edulearn-api/src/main/java/com/edulearn/controller/InscripcionController.java
+
+# Agregar los nuevos endpoints
+cat >> edulearn-api/src/main/java/com/edulearn/controller/InscripcionController.java << 'EOFCONTROLLER'
+
+    /**
+     * Procesar inscripción usando Template Method Pattern
+     */
+    @PostMapping("/proceso")
+    public ResponseEntity<?> procesarInscripcion(@RequestBody SolicitudInscripcion solicitud) {
+        try {
+            ResultadoInscripcion resultado = inscripcionTemplateService.procesarInscripcion(solicitud);
+
+            if (resultado.isExitoso()) {
+                return ResponseEntity.ok(resultado);
+            } else {
+                return ResponseEntity.badRequest().body(resultado);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "exitoso", false,
+                "mensaje", "Error al procesar inscripción: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Obtener tipos de inscripción disponibles
+     */
+    @GetMapping("/proceso/tipos")
+    public List<Map<String, Object>> getTiposInscripcion() {
+        return inscripcionTemplateService.getTiposInscripcion();
+    }
+
+    /**
+     * Obtener pasos para un tipo específico de inscripción
+     */
+    @GetMapping("/proceso/pasos/{tipo}")
+    public Map<String, Object> getPasosParaTipo(@PathVariable String tipo) {
+        List<String> pasos = inscripcionTemplateService.getPasosParaTipo(tipo);
+        Map<String, Object> response = new HashMap<>();
+        response.put("tipo", tipo);
+        response.put("pasos", pasos);
+        return response;
+    }
+
+    /**
+     * Obtener cursos disponibles para inscripción
+     */
+    @GetMapping("/proceso/cursos-disponibles")
+    public List<Map<String, Object>> getCursosDisponibles() {
+        List<Map<String, Object>> cursosMap = new ArrayList<>();
+        for (var curso : inscripcionTemplateService.getCursosDisponibles()) {
+            Map<String, Object> cursoData = new HashMap<>();
+            cursoData.put("id", curso.getId());
+            cursoData.put("nombre", curso.getNombre());
+            cursoData.put("descripcion", curso.getDescripcion());
+            cursoData.put("codigo", curso.getCodigo());
+            cursoData.put("cupo_maximo", curso.getCupoMaximo());
+            cursoData.put("estado", curso.getEstado());
+            cursosMap.add(cursoData);
+        }
+        return cursosMap;
+    }
+
+    /**
+     * Información de demostración del patrón Template Method
+     */
+    @GetMapping("/proceso/demo")
+    public Map<String, Object> getDemoInfo() {
+        return inscripcionTemplateService.getDemoInfo();
+    }
+
+    /**
+     * Verificar elegibilidad de un estudiante para inscribirse a un curso
+     */
+    @GetMapping("/proceso/elegibilidad")
+    public Map<String, Object> verificarElegibilidad(
+            @RequestParam Integer estudianteId,
+            @RequestParam Integer cursoId) {
+        return inscripcionTemplateService.verificarElegibilidad(estudianteId, cursoId);
+    }
+}
+EOFCONTROLLER
+
+echo "   ✓ Endpoints agregados en InscripcionController.java"
+
+# 3. Modificar student-inscripcion-view.tsx
+echo ""
+echo "3. Modificando student-inscripcion-view.tsx..."
+
+sed -i 's/<SelectItem value="ACADEMICA">Académica<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+sed -i 's/<SelectItem value="DEPORTIVA">Deportiva<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+sed -i 's/<SelectItem value="SOCIECONOMICA">Socioeconómica<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+sed -i 's/<SelectItem value="CULTURAL">Cultural<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+
+# Cambiar redirección
+sed -i 's/window.location.reload()/window.location.href = "\/dashboard"/g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+sed -i 's/Ver Mis Cursos/Ir a Mis Cursos/g' edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx
+
+echo "   ✓ student-inscripcion-view.tsx actualizado"
+
+# 4. Modificar template-method-inscripcion.tsx
+echo ""
+echo "4. Modificando template-method-inscripcion.tsx..."
+
+sed -i 's/<SelectItem value="ACADEMICA">Académica<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx
+sed -i 's/<SelectItem value="DEPORTIVA">Deportiva<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx
+sed -i 's/<SelectItem value="SOCIECONOMICA">Socioeconómica<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx
+sed -i 's/<SelectItem value="CULTURAL">Cultural<\/SelectItem>//g' edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx
+
+echo "   ✓ template-method-inscripcion.tsx actualizado"
+
+echo ""
+echo "======================================"
+echo "✓ Todos los cambios aplicados exitosamente"
+echo "======================================"
+echo ""
+echo "Archivos modificados:"
+echo "  1. edulearn-api/src/main/java/com/edulearn/patterns/comportamiento/template_method/InscripcionBeca.java"
+echo "  2. edulearn-api/src/main/java/com/edulearn/controller/InscripcionController.java"
+echo "  3. edulearn-frontend/src/components/inscripciones/student-inscripcion-view.tsx"
+echo "  4. edulearn-frontend/src/components/inscripciones/template-method-inscripcion.tsx"
+echo ""
+echo "Backups guardados con extensión .backup"
+echo ""
+echo "Siguiente paso: Compilar el backend con 'cd edulearn-api && mvn clean compile'"

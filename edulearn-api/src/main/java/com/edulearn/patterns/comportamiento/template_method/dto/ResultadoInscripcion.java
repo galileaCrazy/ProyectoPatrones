@@ -3,13 +3,15 @@ package com.edulearn.patterns.comportamiento.template_method.dto;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * DTO para el resultado completo del proceso de inscripción
  */
 public class ResultadoInscripcion {
-    
+
     private Integer estudianteId;
     private Integer cursoId;
     private String tipoInscripcion;
@@ -20,13 +22,16 @@ public class ResultadoInscripcion {
     private LocalDateTime fechaInicio;
     private LocalDateTime fechaFin;
     private long duracionTotalMs;
-    
+
     // Información adicional
     private String numeroInscripcion;
     private BigDecimal montoTotal;
     private BigDecimal descuentoAplicado;
     private String urlComprobante;
     private String urlRecibo;
+
+    // Detalles adicionales del resultado
+    private Map<String, Object> detalles = new HashMap<>();
     
     public void calcularDuracion() {
         if (fechaInicio != null && fechaFin != null) {
@@ -79,4 +84,14 @@ public class ResultadoInscripcion {
     
     public String getUrlRecibo() { return urlRecibo; }
     public void setUrlRecibo(String urlRecibo) { this.urlRecibo = urlRecibo; }
+
+    public Map<String, Object> getDetalles() { return detalles; }
+    public void setDetalles(Map<String, Object> detalles) { this.detalles = detalles; }
+
+    public void agregarDetalle(String clave, String valor) {
+        if (this.detalles == null) {
+            this.detalles = new HashMap<>();
+        }
+        this.detalles.put(clave, valor);
+    }
 }

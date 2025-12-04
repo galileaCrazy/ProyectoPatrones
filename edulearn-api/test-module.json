@@ -1,0 +1,10 @@
+{
+  "cursoId": 4,
+  "nombre": "Patrón Proxy - Lazy Loading",
+  "descripcion": "Implementación del patrón Proxy con carga diferida y control de acceso. Aprende a optimizar recursos cargando contenido solo cuando es necesario.",
+  "orden": 1,
+  "duracionHoras": 4,
+  "esHoja": false,
+  "nivel": 0,
+  "estado": "ACTIVO"
+}

@@ -1,0 +1,11 @@
+{
+  "cursoId": 4,
+  "nombre": "Conceptos Teóricos",
+  "descripcion": "Fundamentos teóricos del patrón Proxy",
+  "orden": 1,
+  "duracionHoras": 2,
+  "moduloPadreId": 1,
+  "esHoja": false,
+  "nivel": 1,
+  "estado": "ACTIVO"
+}

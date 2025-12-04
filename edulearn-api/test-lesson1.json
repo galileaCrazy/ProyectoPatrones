@@ -1,0 +1,30 @@
+{
+  "cursoId": 4,
+  "nombre": "¿Qué es el Patrón Proxy?",
+  "descripcion": "Introducción al patrón Proxy y sus beneficios",
+  "orden": 1,
+  "duracionHoras": 1,
+  "moduloPadreId": 2,
+  "esHoja": true,
+  "nivel": 2,
+  "estado": "ACTIVO",
+  "materiales": [
+    {
+      "nombre": "Video: Introducción al Patrón Proxy",
+      "descripcion": "Video explicativo sobre los conceptos básicos del patrón Proxy",
+      "tipo": "VIDEO",
+      "duracion": 15,
+      "file": "https://www.youtube.com/watch?v=ejemplo1",
+      "orden": 1
+    },
+    {
+      "nombre": "PDF: Documentación del Patrón Proxy",
+      "descripcion": "Guía completa en PDF sobre el patrón Proxy",
+      "tipo": "PDF",
+      "duracion": 10,
+      "file": "/materiales/proxy-pattern.pdf",
+      "size": "850 MB",
+      "orden": 2
+    }
+  ]
+}

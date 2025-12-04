@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ModuleTree } from './module-tree'
+import { CourseContentTree } from './course-content-tree'
 import {
   CourseMediator,
   ContentModule,
@@ -384,9 +384,9 @@ export default function CourseDetailMediator({ courseId, role, onBack }: CourseD
           </div>
 
           {courseId ? (
-            <ModuleTree
-              cursoId={parseInt(courseId)}
-              onNodeSelect={handleContentSelect}
+            <CourseContentTree
+              courseId={courseId}
+              role={role === 'student' ? 'ESTUDIANTE' : role === 'professor' ? 'DOCENTE' : 'ADMIN'}
             />
           ) : (
             <Card className="border-border/50">

@@ -19,7 +19,7 @@ public class CursoHibrido implements ICurso {
     private String periodoAcademico;
 
     public CursoHibrido(String codigo, String nombre, String descripcion,
-                       int profesorId, String periodoAcademico) {
+                        int profesorId, String periodoAcademico) {
         this.codigo = codigo;
         this.nombre = nombre;
         this.descripcion = descripcion;

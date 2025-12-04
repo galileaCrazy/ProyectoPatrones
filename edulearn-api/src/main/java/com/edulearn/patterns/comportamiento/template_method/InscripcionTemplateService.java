@@ -106,17 +106,48 @@ public class InscripcionTemplateService {
                 cursoOpt.get(), 
                 solicitud);
         
-        // Si fue exitoso, persistir la inscripción
+        // Si fue exitoso, persistir la inscripción con todos los datos
         if (resultado.isExitoso()) {
             Inscripcion inscripcion = new Inscripcion();
             inscripcion.setEstudianteId(solicitud.getEstudianteId());
             inscripcion.setCursoId(solicitud.getCursoId());
             inscripcion.setFechaInscripcion(LocalDate.now());
-            
+
+            // Datos del Template Method
+            inscripcion.setModalidad(proceso.getTipoInscripcion());
+            inscripcion.setEstadoInscripcion(proceso.getEstadoInscripcion());
+            inscripcion.setCertificadoGarantizado(proceso.tieneCertificadoGarantizado());
+
+            // Datos específicos según modalidad
+            if ("PAGA".equals(tipo.toUpperCase())) {
+                inscripcion.setMetodoPago(solicitud.getMetodoPago());
+                inscripcion.setMontoPagado(new java.math.BigDecimal("500.00"));
+
+                // Extraer transacción ID de los pasos del resultado
+                resultado.getPasos().stream()
+                    .filter(paso -> paso.getDetalles() != null && paso.getDetalles().containsKey("transaccionId"))
+                    .findFirst()
+                    .ifPresent(paso -> inscripcion.setTransaccionId((String) paso.getDetalles().get("transaccionId")));
+            }
+
+            if ("BECA".equals(tipo.toUpperCase())) {
+                inscripcion.setTipoBeca(solicitud.getTipoBeca());
+                inscripcion.setCodigoBeca(solicitud.getCodigoBeca());
+                inscripcion.setMontoPagado(java.math.BigDecimal.ZERO); // Becas no pagan
+            }
+
+            if ("GRATUITA".equals(tipo.toUpperCase())) {
+                inscripcion.setMontoPagado(java.math.BigDecimal.ZERO); // Sin costo
+            }
+
             Inscripcion guardada = inscripcionRepository.save(inscripcion);
             resultado.setNumeroInscripcion("INS-" + guardada.getId());
+            resultado.agregarDetalle("inscripcionId", String.valueOf(guardada.getId()));
+            resultado.agregarDetalle("modalidad", guardada.getModalidad());
+            resultado.agregarDetalle("estadoInscripcion", guardada.getEstadoInscripcion());
+            resultado.agregarDetalle("certificadoGarantizado", String.valueOf(guardada.getCertificadoGarantizado()));
         }
-        
+
         return resultado;
     }
     

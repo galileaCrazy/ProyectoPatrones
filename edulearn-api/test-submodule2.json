@@ -1,0 +1,11 @@
+{
+  "cursoId": 4,
+  "nombre": "Implementación Práctica",
+  "descripcion": "Aplicación práctica del patrón Proxy en proyectos reales",
+  "orden": 2,
+  "duracionHoras": 2,
+  "moduloPadreId": 1,
+  "esHoja": false,
+  "nivel": 1,
+  "estado": "ACTIVO"
+}

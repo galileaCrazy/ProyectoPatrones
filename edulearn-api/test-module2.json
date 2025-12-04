@@ -1,0 +1,10 @@
+{
+  "cursoId": 4,
+  "nombre": "Patrón Strategy",
+  "descripcion": "Implementación del patrón Strategy para diferentes algoritmos de evaluación",
+  "orden": 2,
+  "duracionHoras": 3,
+  "esHoja": false,
+  "nivel": 0,
+  "estado": "ACTIVO"
+}

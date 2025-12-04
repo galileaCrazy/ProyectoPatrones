@@ -16,6 +16,7 @@ import ForumsView from '@/components/forums/forums'
 import { StudentInscripcionView } from '@/components/inscripciones'
 import { NotificationsPanel } from '@/components/notifications'
 import { SystemSettings } from '@/components/settings'
+import BecasAdminView from '@/components/admin/becas-admin-view'
 
 interface DashboardProps {
   role: 'student' | 'professor' | 'admin'
@@ -62,6 +63,8 @@ export default function Dashboard({ role, onLogout }: DashboardProps) {
         return <ForumsView />
       case 'inscripciones':
         return <StudentInscripcionView />
+      case 'becas':
+        return <BecasAdminView />
       case 'notifications':
         return <NotificationsPanel userRole={role} />
       case 'settings':

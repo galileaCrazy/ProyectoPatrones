@@ -42,12 +42,33 @@ export class EvaluationService {
   }
 
   async updateEvaluation(id: number, evaluation: Partial<Evaluation>): Promise<Evaluation> {
+    // Convertir fechas al formato esperado por el backend
+    const payload: any = { ...evaluation }
+
+    // Normalizar fechaLimite
+    if (payload.fechaLimite) {
+      // Extraer solo la fecha (YYYY-MM-DD) sin importar el formato de entrada
+      const dateOnly = payload.fechaLimite.split('T')[0].replace(/\//g, '-')
+      payload.fechaLimite = dateOnly + 'T23:59:59'
+    }
+
+    // Normalizar fechaInicio
+    if (payload.fechaInicio) {
+      // Extraer solo la fecha (YYYY-MM-DD) sin importar el formato de entrada
+      const dateOnly = payload.fechaInicio.split('T')[0].replace(/\//g, '-')
+      payload.fechaInicio = dateOnly + 'T00:00:00'
+    }
+
     const response = await fetch(`${this.baseUrl}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(evaluation)
+      body: JSON.stringify(payload)
     })
-    if (!response.ok) throw new Error('Error al actualizar evaluación')
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Error al actualizar evaluación:', errorText)
+      throw new Error('Error al actualizar evaluación')
+    }
     return await response.json()
   }
 

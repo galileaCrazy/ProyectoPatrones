@@ -197,7 +197,7 @@ export default function TemplateMethodInscripcion() {
       if (formData.tipoInscripcion === 'PAGA') {
         payload.metodoPago = formData.metodoPago
         payload.numeroTarjeta = formData.numeroTarjeta
-        payload.monto = parseFloat(formData.monto)
+        payload.monto = 500.00 // Monto fijo de 500 pesos para todos los cursos
         if (formData.codigoDescuento) {
           payload.codigoDescuento = formData.codigoDescuento
         }
@@ -445,10 +445,14 @@ export default function TemplateMethodInscripcion() {
                                 id="monto"
                                 type="number"
                                 step="0.01"
-                                value={formData.monto}
-                                onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-                                required
+                                value="500.00"
+                                readOnly
+                                disabled
+                                className="bg-muted"
                               />
+                              <p className="text-xs text-muted-foreground">
+                                Monto fijo: 500 pesos para todos los cursos
+                              </p>
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="numeroTarjeta">Número de Tarjeta *</Label>
@@ -490,9 +494,13 @@ export default function TemplateMethodInscripcion() {
                                   <SelectValue placeholder="Seleccione tipo" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="ACADEMICA">Académica</SelectItem>
-                                  <SelectItem value="DEPORTIVA">Deportiva</SelectItem>
-                                  <SelectItem value="SOCIAL">Social</SelectItem>
+                                  <SelectItem value="TECNM">TECNM (Convenio)</SelectItem>
+                                  <SelectItem value="UNAM">UNAM (Convenio)</SelectItem>
+                                  <SelectItem value="IPN">IPN (Convenio)</SelectItem>
+                                  
+                                  
+                                  
+                                  
                                 </SelectContent>
                               </Select>
                             </div>

@@ -1,0 +1,21 @@
+{
+  "cursoId": 4,
+  "nombre": "Tipos de Proxy",
+  "descripcion": "Virtual Proxy, Protection Proxy, Remote Proxy",
+  "orden": 2,
+  "duracionHoras": 1,
+  "moduloPadreId": 2,
+  "esHoja": true,
+  "nivel": 2,
+  "estado": "ACTIVO",
+  "materiales": [
+    {
+      "nombre": "Lectura: Tipos de Proxy",
+      "descripcion": "Artículo sobre los diferentes tipos de proxies",
+      "tipo": "LECTURE",
+      "duracion": 8,
+      "file": "/materiales/tipos-proxy.html",
+      "orden": 1
+    }
+  ]
+}
