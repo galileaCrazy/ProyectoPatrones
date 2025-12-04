@@ -15,6 +15,7 @@ import {
   EyeOff,
   ArrowLeft,
 } from "lucide-react"
+import { MaterialViewer } from "./material-viewer"
 
 interface ContentItem {
   id: string
@@ -22,6 +23,7 @@ interface ContentItem {
   type: "video" | "lecture" | "task" | "quiz" | "supplement"
   duration: number // en minutos
   isCompleted?: boolean
+  materialId?: number // ID del material en la base de datos para lazy loading
 }
 
 interface ModuleContent {
@@ -70,6 +72,11 @@ const getTypeLabel = (type: string) => {
 export function ModuleDetailView({ module, onBack }: ModuleDetailViewProps) {
   const [showDetails, setShowDetails] = useState(true)
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const [selectedMaterial, setSelectedMaterial] = useState<ContentItem | null>(null)
+
+  // Usuario mock - En producción vendría del contexto de autenticación
+  const usuarioId = 1
+  const rolUsuario = "ESTUDIANTE"
 
   // Contar contenidos por tipo
   const contentCounts = {
@@ -90,6 +97,24 @@ export function ModuleDetailView({ module, onBack }: ModuleDetailViewProps) {
     tasks: module.content.filter((c) => c.type === "task"),
     quizzes: module.content.filter((c) => c.type === "quiz"),
     supplements: module.content.filter((c) => c.type === "supplement"),
+  }
+
+  // Si hay un material seleccionado, mostrar el viewer
+  if (selectedMaterial && selectedMaterial.materialId) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Button variant="ghost" size="sm" onClick={() => setSelectedMaterial(null)} className="gap-2">
+          <ArrowLeft className="w-4 h-4" />
+          Volver al Módulo
+        </Button>
+        <MaterialViewer
+          materialId={selectedMaterial.materialId}
+          usuarioId={usuarioId}
+          rolUsuario={rolUsuario}
+          onClose={() => setSelectedMaterial(null)}
+        />
+      </div>
+    )
   }
 
   return (
@@ -231,7 +256,7 @@ export function ModuleDetailView({ module, onBack }: ModuleDetailViewProps) {
                 {expandedItems.has("videos") && (
                   <div className="space-y-2 pl-8">
                     {groupedContent.videos.map((item) => (
-                      <ContentItemRow key={item.id} item={item} />
+                      <ContentItemRow key={item.id} item={item} onItemClick={setSelectedMaterial} />
                     ))}
                   </div>
                 )}
@@ -263,7 +288,7 @@ export function ModuleDetailView({ module, onBack }: ModuleDetailViewProps) {
                 {expandedItems.has("lectures") && (
                   <div className="space-y-2 pl-8">
                     {groupedContent.lectures.map((item) => (
-                      <ContentItemRow key={item.id} item={item} />
+                      <ContentItemRow key={item.id} item={item} onItemClick={setSelectedMaterial} />
                     ))}
                   </div>
                 )}
@@ -295,7 +320,7 @@ export function ModuleDetailView({ module, onBack }: ModuleDetailViewProps) {
                 {expandedItems.has("tasks") && (
                   <div className="space-y-2 pl-8">
                     {groupedContent.tasks.map((item) => (
-                      <ContentItemRow key={item.id} item={item} />
+                      <ContentItemRow key={item.id} item={item} onItemClick={setSelectedMaterial} />
                     ))}
                   </div>
                 )}
@@ -327,7 +352,7 @@ export function ModuleDetailView({ module, onBack }: ModuleDetailViewProps) {
                 {expandedItems.has("quizzes") && (
                   <div className="space-y-2 pl-8">
                     {groupedContent.quizzes.map((item) => (
-                      <ContentItemRow key={item.id} item={item} />
+                      <ContentItemRow key={item.id} item={item} onItemClick={setSelectedMaterial} />
                     ))}
                   </div>
                 )}
@@ -359,7 +384,7 @@ export function ModuleDetailView({ module, onBack }: ModuleDetailViewProps) {
                 {expandedItems.has("supplements") && (
                   <div className="space-y-2 pl-8">
                     {groupedContent.supplements.map((item) => (
-                      <ContentItemRow key={item.id} item={item} />
+                      <ContentItemRow key={item.id} item={item} onItemClick={setSelectedMaterial} />
                     ))}
                   </div>
                 )}
@@ -373,9 +398,18 @@ export function ModuleDetailView({ module, onBack }: ModuleDetailViewProps) {
 }
 
 // Componente para cada item de contenido
-function ContentItemRow({ item }: { item: ContentItem }) {
+function ContentItemRow({ item, onItemClick }: { item: ContentItem; onItemClick?: (item: ContentItem) => void }) {
+  const handleClick = () => {
+    if (onItemClick) {
+      onItemClick(item)
+    }
+  }
+
   return (
-    <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-left group">
+    <button
+      onClick={handleClick}
+      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-left group"
+    >
       <div className="flex-shrink-0">{getTypeIcon(item.type)}</div>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-foreground group-hover:text-primary transition-colors truncate">{item.name}</p>

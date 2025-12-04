@@ -12,6 +12,10 @@ import {
   Play,
   FileIcon,
   Loader2,
+  Award,
+  BookOpen,
+  CheckSquare,
+  Eye,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -20,9 +24,10 @@ interface ContentItem {
   name: string
   type: "VIDEO" | "PDF" | "LECTURE" | "TASK" | "QUIZ" | "SUPPLEMENT" | "FORM" | "PRACTICE"
   duration: number
-  file?: string
+  file?: string | null
   isCompleted?: boolean
-  size?: string // Para materiales grandes
+  size?: string | number // Para materiales grandes (ej: "850 MB" o tamaño en bytes)
+  materialId?: number // ID en la BD para lazy loading con Proxy
 }
 
 interface TreeNode {
@@ -33,6 +38,8 @@ interface TreeNode {
   children?: TreeNode[]
   completedItems?: number
   totalItems?: number
+  estimatedTime?: number
+  description?: string
   content?: ContentItem[]
 }
 
@@ -41,13 +48,20 @@ interface ContentTreeNodeProps {
   level?: number
   role: "ESTUDIANTE" | "DOCENTE" | "ADMIN"
   onEditModule?: (nodeId: string) => void
+  onMaterialClick?: (material: ContentItem) => void
 }
 
-export function ContentTreeNode({ contentItem, level = 0, role, onEditModule }: ContentTreeNodeProps) {
+export function ContentTreeNode({
+  contentItem,
+  level = 0,
+  role,
+  onEditModule,
+  onMaterialClick,
+}: ContentTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(level < 2)
 
   // ═══════════════════════════════════════════════════════════════
-  // ESTADO PARA LAZY LOADING EN UI
+  // ESTADO PARA LAZY LOADING EN UI (Metadata vs Contenido Real)
   // ═══════════════════════════════════════════════════════════════
   const [isContentLoaded, setIsContentLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -56,11 +70,11 @@ export function ContentTreeNode({ contentItem, level = 0, role, onEditModule }: 
   const hasContent = contentItem.content && contentItem.content.length > 0
 
   // ═══════════════════════════════════════════════════════════════
-  // DETERMINAR SI EL NODO TIENE MATERIALES GRANDES (LAZY LOAD)
+  // DETERMINAR SI EL NODO TIENE MATERIALES PESADOS
+  // Videos, PDFs y archivos grandes requieren Proxy con lazy loading
   // ═══════════════════════════════════════════════════════════════
   const hasLargeContent =
-    hasContent &&
-    contentItem.content?.some((item) => item.type === "VIDEO" || item.type === "PDF" || item.size)
+    hasContent && contentItem.content?.some((item) => item.type === "VIDEO" || item.type === "PDF" || item.size)
 
   const getIcon = () => {
     switch (contentItem.type) {
@@ -112,18 +126,19 @@ export function ContentTreeNode({ contentItem, level = 0, role, onEditModule }: 
   const canEdit = (role === "DOCENTE" || role === "ADMIN") && contentItem.type === "module"
 
   // ═══════════════════════════════════════════════════════════════
-  // FUNCIÓN: Cargar contenido pesado (LAZY LOADING EN UI)
-  // Simula el delay de carga del backend
+  // FUNCIÓN: Cargar contenido pesado (LAZY LOADING)
+  // En producción, aquí se llamaría al endpoint del Proxy
   // ═══════════════════════════════════════════════════════════════
   const handleLoadContent = async () => {
-    console.log("🔷 [ContentTreeNode] Iniciando carga de contenido pesado...")
+    console.log("🔷 [ContentTreeNode] Iniciando lazy loading de contenido...")
     console.log("📦 [ContentTreeNode] Módulo:", contentItem.name)
     console.log("👤 [ContentTreeNode] Rol:", role)
 
     setIsLoading(true)
 
-    // Simular delay de carga (como si llamáramos al backend con el patrón Proxy)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // Simular llamada al backend con Proxy
+    // En producción: await obtenerMaterialesModuloConProxy({moduloId, usuarioId, rolUsuario})
+    await new Promise((resolve) => setTimeout(resolve, 800))
 
     setIsContentLoaded(true)
     setIsLoading(false)
@@ -132,71 +147,65 @@ export function ContentTreeNode({ contentItem, level = 0, role, onEditModule }: 
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // FUNCIÓN: Obtener ícono del tipo de contenido
+  // ═══════════════════════════════════════════════════════════════
+  const getContentIcon = (type: string) => {
+    switch (type) {
+      case "VIDEO":
+        return <Play className="w-4 h-4 text-blue-500" />
+      case "PDF":
+        return <FileIcon className="w-4 h-4 text-red-500" />
+      case "LECTURE":
+        return <BookOpen className="w-4 h-4 text-purple-500" />
+      case "TASK":
+        return <CheckSquare className="w-4 h-4 text-orange-500" />
+      case "QUIZ":
+        return <Award className="w-4 h-4 text-green-500" />
+      case "SUPPLEMENT":
+        return <Eye className="w-4 h-4 text-cyan-500" />
+      default:
+        return <Circle className="w-4 h-4 text-gray-500" />
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // RENDERIZAR ITEM DE CONTENIDO INDIVIDUAL
+  // Cada item puede ser clickeado para abrir el MaterialViewer
   // ═══════════════════════════════════════════════════════════════
   const renderContentItem = (item: ContentItem) => {
     const isLarge = item.type === "VIDEO" || item.type === "PDF" || item.size
 
-    const getContentIcon = () => {
-      switch (item.type) {
-        case "VIDEO":
-          return <Play className="w-4 h-4 text-blue-500" />
-        case "PDF":
-          return <FileIcon className="w-4 h-4 text-red-500" />
-        case "LECTURE":
-          return <FileText className="w-4 h-4 text-purple-500" />
-        case "QUIZ":
-          return <CheckCircle2 className="w-4 h-4 text-orange-500" />
-        default:
-          return <Circle className="w-4 h-4 text-gray-500" />
-      }
-    }
-
     return (
-      <div
+      <button
         key={item.id}
-        className="ml-8 py-2 px-3 rounded-lg hover:bg-muted/30 border border-border/30 mb-2"
+        onClick={() => onMaterialClick?.(item)}
+        className="w-full ml-8 py-2 px-3 rounded-lg hover:bg-muted/50 border border-border/30 mb-2 transition-colors text-left group"
       >
-        <div className="flex items-center gap-2">
-          {getContentIcon()}
-          <span className={`text-sm flex-1 ${item.isCompleted ? "text-green-600 line-through" : ""}`}>
+        <div className="flex items-center gap-3">
+          {getContentIcon(item.type)}
+          <span
+            className={`text-sm flex-1 ${
+              item.isCompleted ? "text-green-600 dark:text-green-400 line-through" : "text-foreground"
+            } group-hover:text-primary transition-colors`}
+          >
             {item.name}
           </span>
           <span className="text-xs text-muted-foreground">{item.duration} min</span>
           {isLarge && item.size && (
-            <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 px-2 py-0.5 rounded">
+            <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 px-2 py-0.5 rounded font-medium">
               {item.size}
             </span>
           )}
+          {item.isCompleted && <CheckCircle2 className="w-4 h-4 text-green-500" />}
         </div>
-
-        {/* Simular el visor de contenido para items grandes (VIDEO/PDF) */}
-        {isLarge && (
-          <div className="mt-2 p-4 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded">
-            {item.type === "VIDEO" && (
-              <div className="text-center py-6">
-                <Play className="w-12 h-12 mx-auto mb-2 text-blue-500" />
-                <p className="text-sm text-muted-foreground">Video Player Simulado</p>
-                <p className="text-xs text-muted-foreground mt-1">"{item.name}"</p>
-              </div>
-            )}
-            {item.type === "PDF" && (
-              <div className="text-center py-6">
-                <FileIcon className="w-12 h-12 mx-auto mb-2 text-red-500" />
-                <p className="text-sm text-muted-foreground">PDF Viewer Simulado</p>
-                <p className="text-xs text-muted-foreground mt-1">"{item.name}"</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      </button>
     )
   }
 
   return (
     <div className="select-none">
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* NODO PRINCIPAL (Módulo/Submódulo/Lección)                        */}
+      {/* NODO PRINCIPAL (Módulo/Submódulo/Lección/Actividad)              */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <div
         className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors group"
@@ -265,12 +274,12 @@ export function ContentTreeNode({ contentItem, level = 0, role, onEditModule }: 
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* SECCIÓN DE CONTENIDO (Con Lazy Loading en UI)                    */}
+      {/* SECCIÓN DE CONTENIDO (Con Lazy Loading del Patrón Proxy)         */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       {isExpanded && hasContent && (
         <div className="ml-6 mt-2 mb-3 border-l-2 border-border/50 pl-4">
           {!isContentLoaded ? (
-            /* ESTADO INICIAL: Mostrar botón "Cargar Contenido" */
+            /* ESTADO INICIAL: Mostrar botón "Cargar Contenido" (Proxy) */
             <div className="bg-muted/30 border border-border/50 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -279,7 +288,7 @@ export function ContentTreeNode({ contentItem, level = 0, role, onEditModule }: 
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {hasLargeContent
-                      ? "⚠️ Incluye materiales pesados (videos/PDFs)"
+                      ? "💡 Incluye materiales pesados (videos/PDFs) - Lazy Loading"
                       : "Materiales de lectura y evaluaciones"}
                   </p>
                 </div>
@@ -311,7 +320,7 @@ export function ContentTreeNode({ contentItem, level = 0, role, onEditModule }: 
             <div>
               <div className="mb-3 flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="font-medium">Contenido cargado (Lazy Loading completado)</span>
+                <span className="font-medium">Contenido cargado (Patrón Proxy - Lazy Loading)</span>
               </div>
               {contentItem.content?.map((item) => renderContentItem(item))}
             </div>
@@ -320,7 +329,8 @@ export function ContentTreeNode({ contentItem, level = 0, role, onEditModule }: 
       )}
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* CHILDREN RECURSIVOS (Submódulos, Lecciones)                      */}
+      {/* CHILDREN RECURSIVOS (Patrón Composite)                           */}
+      {/* Submódulos, Lecciones, Actividades se renderizan recursivamente  */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       {hasChildren && isExpanded && (
         <div>
@@ -331,6 +341,7 @@ export function ContentTreeNode({ contentItem, level = 0, role, onEditModule }: 
               level={level + 1}
               role={role}
               onEditModule={onEditModule}
+              onMaterialClick={onMaterialClick}
             />
           ))}
         </div>
