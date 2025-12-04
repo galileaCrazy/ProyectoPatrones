@@ -16,6 +16,7 @@ import {
   BookOpen,
   CheckSquare,
   Eye,
+  Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -49,6 +50,7 @@ interface ContentTreeNodeProps {
   role: "ESTUDIANTE" | "DOCENTE" | "ADMIN"
   onEditModule?: (nodeId: string) => void
   onMaterialClick?: (material: ContentItem) => void
+  onOpenDecorators?: (nodeId: string) => void
 }
 
 export function ContentTreeNode({
@@ -57,6 +59,7 @@ export function ContentTreeNode({
   role,
   onEditModule,
   onMaterialClick,
+  onOpenDecorators,
 }: ContentTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(level < 2)
 
@@ -255,21 +258,35 @@ export function ContentTreeNode({
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════ */}
-        {/* BOTÓN DE EDICIÓN (Solo visible para DOCENTE/ADMIN en hover)      */}
+        {/* BOTONES DE ACCIÓN (Solo visible para DOCENTE/ADMIN en hover)     */}
         {/* ═══════════════════════════════════════════════════════════════ */}
         {canEdit && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation()
-              onEditModule?.(contentItem.id)
-            }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Editar módulo"
-          >
-            <Edit2 className="w-4 h-4" />
-          </Button>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenDecorators?.(contentItem.id)
+              }}
+              className="h-8 w-8 p-0"
+              title="Extender funcionalidad (Patrón Decorator)"
+            >
+              <Sparkles className="w-4 h-4 text-purple-500" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation()
+                onEditModule?.(contentItem.id)
+              }}
+              className="h-8 w-8 p-0"
+              title="Editar módulo"
+            >
+              <Edit2 className="w-4 h-4" />
+            </Button>
+          </div>
         )}
       </div>
 
@@ -342,6 +359,7 @@ export function ContentTreeNode({
               role={role}
               onEditModule={onEditModule}
               onMaterialClick={onMaterialClick}
+              onOpenDecorators={onOpenDecorators}
             />
           ))}
         </div>

@@ -4,8 +4,22 @@ import { useState, useEffect } from "react"
 import { ContentTreeNode } from "./content-tree-node"
 import { ModuleEditor } from "./module-editor"
 import { MaterialViewer } from "./material-viewer"
+import { ModuleDecorators } from "./module-decorators"
+import { CourseRewardsBanner } from "./course-rewards-banner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Book, CheckCircle2, Circle, Lock, Loader2, AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Book, CheckCircle2, Circle, Lock, Loader2, AlertCircle, Plus, FolderPlus, Sparkles } from "lucide-react"
 import { obtenerModulosPorCurso, type ModuloCursoDTO } from "@/lib/api"
 
 interface ContentItem {
@@ -46,6 +60,14 @@ export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
   const [courseContent, setCourseContent] = useState<TreeNode[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showCreateModuleDialog, setShowCreateModuleDialog] = useState(false)
+  const [newModuleName, setNewModuleName] = useState("")
+  const [newModuleDescription, setNewModuleDescription] = useState("")
+  const [creatingModule, setCreatingModule] = useState(false)
+
+  // Estados para el patrón Decorator
+  const [showDecoratorsDialog, setShowDecoratorsDialog] = useState(false)
+  const [selectedModuleForDecorators, setSelectedModuleForDecorators] = useState<TreeNode | null>(null)
 
   // Usuario mock - En producción vendría del contexto
   const usuarioId = 1
@@ -162,6 +184,78 @@ export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // CREAR NUEVO MÓDULO
+  // ═══════════════════════════════════════════════════════════════
+  const handleCreateModule = async () => {
+    if (!newModuleName.trim()) {
+      alert("Por favor ingresa un nombre para el módulo")
+      return
+    }
+
+    try {
+      setCreatingModule(true)
+
+      const nuevoModulo = {
+        cursoId: parseInt(courseId),
+        nombre: newModuleName.trim(),
+        descripcion: newModuleDescription.trim() || "Sin descripción",
+        orden: courseContent.length + 1,
+        duracionHoras: 0,
+        moduloPadreId: null,
+        esHoja: false,
+        nivel: 0,
+        estado: "ACTIVO",
+      }
+
+      const response = await fetch("http://localhost:8080/api/modulos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(nuevoModulo),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error al crear el módulo: ${response.status}`)
+      }
+
+      const moduloCreado = await response.json()
+      console.log("✅ Módulo creado exitosamente:", moduloCreado)
+
+      // Limpiar formulario
+      setNewModuleName("")
+      setNewModuleDescription("")
+      setShowCreateModuleDialog(false)
+
+      // Recargar módulos
+      await cargarModulos()
+    } catch (err) {
+      console.error("Error al crear módulo:", err)
+      alert(`Error al crear el módulo: ${err instanceof Error ? err.message : "Error desconocido"}`)
+    } finally {
+      setCreatingModule(false)
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // FUNCIONES PARA EL PATRÓN DECORATOR
+  // ═══════════════════════════════════════════════════════════════
+  const handleOpenDecorators = (moduleId: string) => {
+    const module = getModuleById(moduleId)
+    if (module) {
+      setSelectedModuleForDecorators(module)
+      setShowDecoratorsDialog(true)
+    }
+  }
+
+  const handleApplyDecorators = async () => {
+    setShowDecoratorsDialog(false)
+    setSelectedModuleForDecorators(null)
+    // Recargar módulos para reflejar los cambios
+    await cargarModulos()
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // RENDERIZADO CONDICIONAL: MaterialViewer
   // ═══════════════════════════════════════════════════════════════
   if (selectedMaterial && selectedMaterial.materialId) {
@@ -239,19 +333,98 @@ export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
   // ═══════════════════════════════════════════════════════════════
   if (courseContent.length === 0) {
     return (
-      <Card className="border-border/50">
-        <CardContent className="text-center py-12">
-          <Book className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <p className="text-lg font-semibold text-foreground mb-2">
-            No hay módulos en este curso
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {role === "DOCENTE" || role === "ADMIN"
-              ? "Comienza agregando módulos y contenido al curso"
-              : "El profesor aún no ha agregado contenido a este curso"}
-          </p>
-        </CardContent>
-      </Card>
+      <>
+        <Card className="border-border/50">
+          <CardContent className="text-center py-12">
+            <Book className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+            <p className="text-lg font-semibold text-foreground mb-2">
+              No hay módulos en este curso
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              {role === "DOCENTE" || role === "ADMIN"
+                ? "Comienza agregando módulos y contenido al curso"
+                : "El profesor aún no ha agregado contenido a este curso"}
+            </p>
+
+            {(role === "DOCENTE" || role === "ADMIN") && (
+              <Button
+                onClick={() => setShowCreateModuleDialog(true)}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar Primer Módulo
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Dialog para crear módulo */}
+        <Dialog open={showCreateModuleDialog} onOpenChange={setShowCreateModuleDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Crear Nuevo Módulo</DialogTitle>
+              <DialogDescription>
+                Agrega un módulo al curso. Luego podrás agregar materiales y contenido.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="module-name">Nombre del Módulo *</Label>
+                <Input
+                  id="module-name"
+                  placeholder="Ej: Introducción a la Programación"
+                  value={newModuleName}
+                  onChange={(e) => setNewModuleName(e.target.value)}
+                  disabled={creatingModule}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="module-description">Descripción</Label>
+                <Textarea
+                  id="module-description"
+                  placeholder="Describe los objetivos y contenido de este módulo"
+                  value={newModuleDescription}
+                  onChange={(e) => setNewModuleDescription(e.target.value)}
+                  disabled={creatingModule}
+                  rows={4}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCreateModuleDialog(false)
+                  setNewModuleName("")
+                  setNewModuleDescription("")
+                }}
+                disabled={creatingModule}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCreateModule}
+                disabled={creatingModule || !newModuleName.trim()}
+              >
+                {creatingModule ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creando...
+                  </>
+                ) : (
+                  <>
+                    <FolderPlus className="w-4 h-4 mr-2" />
+                    Crear Módulo
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
     )
   }
 
@@ -259,19 +432,42 @@ export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
   // RENDERIZADO PRINCIPAL: Árbol de Contenido (Patrón Composite)
   // ═══════════════════════════════════════════════════════════════
   return (
-    <Card className="border-border/50">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Book className="w-5 h-5 text-primary" />
-          Contenido del Curso
-          {(role === "DOCENTE" || role === "ADMIN") && (
-            <span className="ml-auto text-xs text-muted-foreground">
-              Modo edición activado - Pasa el cursor sobre los módulos
-            </span>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <>
+      {/* Banner de Recompensas (Gamificación y Certificación) - Solo para Estudiantes */}
+      {role === "ESTUDIANTE" && (
+        <CourseRewardsBanner cursoId={courseId} estudianteId={usuarioId} />
+      )}
+
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Book className="w-5 h-5 text-primary" />
+              Contenido del Curso
+              {(role === "DOCENTE" || role === "ADMIN") && (
+                <span className="ml-4 text-xs text-muted-foreground">
+                  Modo edición activado - Pasa el cursor sobre los módulos
+                </span>
+              )}
+            </div>
+
+            {/* Botones de acción */}
+            {(role === "DOCENTE" || role === "ADMIN") && (
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowCreateModuleDialog(true)}
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar Módulo
+                </Button>
+              </div>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="space-y-1">
           {courseContent.map((node) => (
             <ContentTreeNode
@@ -281,6 +477,7 @@ export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
               role={role}
               onEditModule={handleEditModule}
               onMaterialClick={handleMaterialClick}
+              onOpenDecorators={handleOpenDecorators}
             />
           ))}
         </div>
@@ -314,5 +511,87 @@ export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
         </div>
       </CardContent>
     </Card>
+
+    {/* Dialog para crear módulo */}
+    <Dialog open={showCreateModuleDialog} onOpenChange={setShowCreateModuleDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Crear Nuevo Módulo</DialogTitle>
+          <DialogDescription>
+            Agrega un módulo al curso. Luego podrás agregar materiales y contenido.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="module-name">Nombre del Módulo *</Label>
+            <Input
+              id="module-name"
+              placeholder="Ej: Introducción a la Programación"
+              value={newModuleName}
+              onChange={(e) => setNewModuleName(e.target.value)}
+              disabled={creatingModule}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="module-description">Descripción</Label>
+            <Textarea
+              id="module-description"
+              placeholder="Describe los objetivos y contenido de este módulo"
+              value={newModuleDescription}
+              onChange={(e) => setNewModuleDescription(e.target.value)}
+              disabled={creatingModule}
+              rows={4}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowCreateModuleDialog(false)
+              setNewModuleName("")
+              setNewModuleDescription("")
+            }}
+            disabled={creatingModule}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleCreateModule}
+            disabled={creatingModule || !newModuleName.trim()}
+          >
+            {creatingModule ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Creando...
+              </>
+            ) : (
+              <>
+                <FolderPlus className="w-4 h-4 mr-2" />
+                Crear Módulo
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Dialog para aplicar decoradores (Patrón Decorator) */}
+    {selectedModuleForDecorators && (
+      <ModuleDecorators
+        moduleId={selectedModuleForDecorators.id}
+        moduleName={selectedModuleForDecorators.name}
+        open={showDecoratorsDialog}
+        onClose={() => {
+          setShowDecoratorsDialog(false)
+          setSelectedModuleForDecorators(null)
+        }}
+        onApply={handleApplyDecorators}
+      />
+    )}
+  </>
   )
 }

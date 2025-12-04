@@ -7,6 +7,9 @@ import com.edulearn.repository.CursoRepository;
 import com.edulearn.patterns.comportamiento.template_method.InscripcionTemplateService;
 import com.edulearn.patterns.comportamiento.template_method.dto.SolicitudInscripcion;
 import com.edulearn.patterns.comportamiento.template_method.dto.ResultadoInscripcion;
+import com.edulearn.patterns.estructural.facade.SistemaEducativoFacade;
+import com.edulearn.patterns.estructural.facade.dto.InscripcionRequest;
+import com.edulearn.patterns.estructural.facade.dto.InscripcionResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +27,8 @@ public class InscripcionController {
     private CursoRepository cursoRepository;
     @Autowired
     private InscripcionTemplateService inscripcionTemplateService;
+    @Autowired
+    private SistemaEducativoFacade sistemaEducativoFacade;
 
     @GetMapping
     public List<Map<String, Object>> getAll() {
@@ -46,6 +51,68 @@ public class InscripcionController {
             result.add(map);
         }
         return result;
+    }
+
+    /**
+     * ============================================================
+     * PATRÓN FACADE - Endpoint simplificado de inscripción
+     * ============================================================
+     *
+     * Este endpoint utiliza el patrón de diseño Facade para proporcionar
+     * una interfaz única y simplificada al proceso complejo de inscripción.
+     *
+     * El SistemaEducativoFacade orquesta automáticamente:
+     * 1. Validación de requisitos (SubsistemaValidacion)
+     * 2. Creación de inscripción (Template Method)
+     * 3. Asignación de materiales (SubsistemaMateriales)
+     * 4. Configuración de evaluaciones (SubsistemaEvaluacion)
+     * 5. Inicio de seguimiento de progreso (SubsistemaSeguimiento)
+     * 6. Envío de notificaciones
+     *
+     * Ventaja: El cliente (frontend) solo necesita llamar este endpoint
+     * sin conocer ni gestionar la complejidad de los subsistemas internos.
+     */
+    @PostMapping("/facade")
+    public ResponseEntity<InscripcionResponse> inscribirConFacade(@RequestBody InscripcionRequest request) {
+        try {
+            // La fachada maneja toda la complejidad internamente
+            InscripcionResponse response = sistemaEducativoFacade.inscribirEstudiante(request);
+
+            if (response.isExitoso()) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body(response);
+            }
+        } catch (Exception e) {
+            InscripcionResponse errorResponse = new InscripcionResponse();
+            errorResponse.setExitoso(false);
+            errorResponse.setMensaje("Error del servidor: " + e.getMessage());
+            errorResponse.agregarError(e.getMessage());
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    /**
+     * Endpoint adicional del Facade: Obtener resumen completo del estudiante en un curso
+     */
+    @GetMapping("/facade/resumen/{estudianteId}/{cursoId}")
+    public ResponseEntity<InscripcionResponse> obtenerResumenFacade(
+            @PathVariable Integer estudianteId,
+            @PathVariable Integer cursoId) {
+        try {
+            InscripcionResponse response = sistemaEducativoFacade.obtenerResumenEstudiante(estudianteId, cursoId);
+
+            if (response.isExitoso()) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body(response);
+            }
+        } catch (Exception e) {
+            InscripcionResponse errorResponse = new InscripcionResponse();
+            errorResponse.setExitoso(false);
+            errorResponse.setMensaje("Error del servidor: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
     }
 
     /**

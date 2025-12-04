@@ -50,6 +50,30 @@ public class Modulo {
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
 
+    // ═══════════════════════════════════════════════════════════════
+    // PATRÓN DECORATOR - Campos para gamificación y certificación
+    // ═══════════════════════════════════════════════════════════════
+
+    // Gamificación
+    @Column(name = "gamificacion_habilitada")
+    private Boolean gamificacionHabilitada = false;
+
+    @Column(name = "gamificacion_puntos")
+    private Integer gamificacionPuntos;
+
+    @Column(name = "gamificacion_badge", length = 100)
+    private String gamificacionBadge;
+
+    // Certificación
+    @Column(name = "certificacion_habilitada")
+    private Boolean certificacionHabilitada = false;
+
+    @Column(name = "certificacion_tipo", length = 100)
+    private String certificacionTipo;
+
+    @Column(name = "certificacion_activa")
+    private Boolean certificacionActiva = false;
+
     // Constructores
     public Modulo() {
         this.fechaCreacion = LocalDateTime.now();
@@ -160,6 +184,62 @@ public class Modulo {
 
     public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
         this.fechaActualizacion = fechaActualizacion;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Getters y Setters - Patrón Decorator (Gamificación)
+    // ═══════════════════════════════════════════════════════════════
+
+    public Boolean getGamificacionHabilitada() {
+        return gamificacionHabilitada;
+    }
+
+    public void setGamificacionHabilitada(Boolean gamificacionHabilitada) {
+        this.gamificacionHabilitada = gamificacionHabilitada;
+    }
+
+    public Integer getGamificacionPuntos() {
+        return gamificacionPuntos;
+    }
+
+    public void setGamificacionPuntos(Integer gamificacionPuntos) {
+        this.gamificacionPuntos = gamificacionPuntos;
+    }
+
+    public String getGamificacionBadge() {
+        return gamificacionBadge;
+    }
+
+    public void setGamificacionBadge(String gamificacionBadge) {
+        this.gamificacionBadge = gamificacionBadge;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Getters y Setters - Patrón Decorator (Certificación)
+    // ═══════════════════════════════════════════════════════════════
+
+    public Boolean getCertificacionHabilitada() {
+        return certificacionHabilitada;
+    }
+
+    public void setCertificacionHabilitada(Boolean certificacionHabilitada) {
+        this.certificacionHabilitada = certificacionHabilitada;
+    }
+
+    public String getCertificacionTipo() {
+        return certificacionTipo;
+    }
+
+    public void setCertificacionTipo(String certificacionTipo) {
+        this.certificacionTipo = certificacionTipo;
+    }
+
+    public Boolean getCertificacionActiva() {
+        return certificacionActiva;
+    }
+
+    public void setCertificacionActiva(Boolean certificacionActiva) {
+        this.certificacionActiva = certificacionActiva;
     }
 
     @PreUpdate
