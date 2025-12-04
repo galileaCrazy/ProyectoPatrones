@@ -16,7 +16,8 @@ import {
   Settings,
   GraduationCap,
   LogOut,
-  Library
+  Library,
+  Link2
 } from 'lucide-react'
 
 interface NavigationProps {
@@ -42,6 +43,7 @@ const menuItems = {
     { id: 'create-course', label: 'Crear Curso', icon: PlusCircle },
     { id: 'students', label: 'Estudiantes', icon: Users },
     { id: 'evaluations', label: 'Evaluaciones', icon: FileCheck },
+    { id: 'integrations', label: 'Integraciones', icon: Link2 },
     { id: 'notifications', label: 'Notificaciones', icon: Bell },
     { id: 'reports', label: 'Reportes', icon: BarChart3 },
     { id: 'calendar', label: 'Calendario', icon: Calendar },

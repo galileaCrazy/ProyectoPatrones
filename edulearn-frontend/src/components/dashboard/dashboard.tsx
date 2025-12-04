@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navigation from '@/components/layout/navigation'
 import DashboardContent from '@/components/dashboard/dashboard-content'
 import CoursesListView from '@/components/courses/courses-list'
@@ -17,6 +17,7 @@ import { StudentInscripcionView } from '@/components/inscripciones'
 import { NotificationsPanel } from '@/components/notifications'
 import { SystemSettings } from '@/components/settings'
 import BecasAdminView from '@/components/admin/becas-admin-view'
+import IntegrationsCourseSelector from '@/components/integrations/integrations-courses-selector'
 
 interface DashboardProps {
   role: 'student' | 'professor' | 'admin'
@@ -26,6 +27,17 @@ interface DashboardProps {
 export default function Dashboard({ role, onLogout }: DashboardProps) {
   const [currentView, setCurrentView] = useState('dashboard')
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
+  const [usuario, setUsuario] = useState<any>(null)
+
+  // Cargar usuario del localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const usuarioStr = localStorage.getItem('usuario')
+      if (usuarioStr) {
+        setUsuario(JSON.parse(usuarioStr))
+      }
+    }
+  }, [])
 
   const renderContent = () => {
     switch (currentView) {
@@ -69,6 +81,14 @@ export default function Dashboard({ role, onLogout }: DashboardProps) {
         return <NotificationsPanel userRole={role} />
       case 'settings':
         return <SystemSettings userRole={role as 'admin'} />
+      case 'integrations':
+        return usuario ? (
+          <IntegrationsCourseSelector profesorId={usuario.id} />
+        ) : (
+          <div className="p-8">
+            <p>Cargando información del usuario...</p>
+          </div>
+        )
       default:
         return <DashboardContent role={role} />
     }
