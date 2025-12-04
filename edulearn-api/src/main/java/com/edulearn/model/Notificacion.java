@@ -15,7 +15,7 @@ public class Notificacion {
     private Long id;
 
     @Column(name = "tipo", nullable = false, length = 50)
-    private String tipo; // EMAIL, SMS, PUSH
+    private String tipo; // INTERNA, EMAIL, SMS, PUSH
 
     @Column(name = "destinatario", nullable = false, length = 255)
     private String destinatario;
@@ -27,7 +27,7 @@ public class Notificacion {
     private String mensaje;
 
     @Column(name = "estado", length = 50)
-    private String estado; // PENDIENTE, ENVIADA, FALLIDA
+    private String estado; // PENDIENTE, ENVIADA, FALLIDA, NO_LEIDA, LEIDA
 
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;

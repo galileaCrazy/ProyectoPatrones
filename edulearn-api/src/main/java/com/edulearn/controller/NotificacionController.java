@@ -11,7 +11,7 @@ import java.util.Map;
 
 /**
  * Controlador REST para gestionar notificaciones
- * Demuestra el uso del patrón Factory Method
+ * Utiliza el patrón Observer para notificaciones internas del sistema
  */
 @RestController
 @RequestMapping("/api/notificaciones")
@@ -22,33 +22,60 @@ public class NotificacionController {
     private NotificacionService service;
 
     /**
-     * Enviar notificación
-     * POST /api/notificaciones
+     * PATRÓN OBSERVER: Registrar usuario como observador
+     * POST /api/notificaciones/observer/register
      */
-    @PostMapping
-    public ResponseEntity<Notificacion> enviar(@RequestBody NotificacionRequest request) {
-        Notificacion notif = service.enviarNotificacion(
-            request.getTipo(),
-            request.getDestinatario(),
-            request.getAsunto(),
-            request.getMensaje()
-        );
-        return ResponseEntity.ok(notif);
+    @PostMapping("/observer/register")
+    public ResponseEntity<Map<String, Object>> registerObserver(@RequestBody Map<String, Object> request) {
+        Integer userId = (Integer) request.get("userId");
+        String userName = (String) request.get("userName");
+        String userRole = (String) request.get("userRole");
+
+        service.registerUserObserver(userId, userName, userRole);
+
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Usuario registrado como observador",
+            "userId", userId
+        ));
     }
 
     /**
-     * Enviar notificación múltiple (varios canales)
-     * POST /api/notificaciones/multiple
+     * PATRÓN OBSERVER: Obtener notificaciones no leídas de un usuario
+     * GET /api/notificaciones/usuario/{userId}/no-leidas
      */
-    @PostMapping("/multiple")
-    public ResponseEntity<List<Notificacion>> enviarMultiple(@RequestBody NotificacionMultipleRequest request) {
-        List<Notificacion> notifs = service.enviarNotificacionMultiple(
-            request.getTipos(),
-            request.getDestinatario(),
-            request.getAsunto(),
-            request.getMensaje()
-        );
-        return ResponseEntity.ok(notifs);
+    @GetMapping("/usuario/{userId}/no-leidas")
+    public ResponseEntity<List<Notificacion>> getUnreadNotifications(@PathVariable Integer userId) {
+        return ResponseEntity.ok(service.getUnreadNotifications(userId));
+    }
+
+    /**
+     * PATRÓN OBSERVER: Obtener contador de notificaciones no leídas
+     * GET /api/notificaciones/usuario/{userId}/count
+     */
+    @GetMapping("/usuario/{userId}/count")
+    public ResponseEntity<Map<String, Object>> getUnreadCount(@PathVariable Integer userId) {
+        long count = service.getUnreadCount(userId);
+        return ResponseEntity.ok(Map.of("unreadCount", count));
+    }
+
+    /**
+     * PATRÓN OBSERVER: Marcar notificación como leída
+     * PUT /api/notificaciones/{id}/leer
+     */
+    @PutMapping("/{id}/leer")
+    public ResponseEntity<Notificacion> markAsRead(@PathVariable Long id) {
+        return ResponseEntity.ok(service.markAsRead(id));
+    }
+
+    /**
+     * PATRÓN OBSERVER: Marcar todas las notificaciones como leídas
+     * PUT /api/notificaciones/usuario/{userId}/leer-todas
+     */
+    @PutMapping("/usuario/{userId}/leer-todas")
+    public ResponseEntity<Map<String, Object>> markAllAsRead(@PathVariable Integer userId) {
+        service.markAllAsRead(userId);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Todas las notificaciones marcadas como leídas"));
     }
 
     /**
@@ -87,15 +114,6 @@ public class NotificacionController {
         return ResponseEntity.ok(service.obtenerPorDestinatario(destinatario));
     }
 
-    /**
-     * Reintentar envío de notificación fallida
-     * POST /api/notificaciones/{id}/reintentar
-     */
-    @PostMapping("/{id}/reintentar")
-    public ResponseEntity<Notificacion> reintentar(@PathVariable Long id) {
-        Notificacion notif = service.reintentarEnvio(id);
-        return ResponseEntity.ok(notif);
-    }
 
     /**
      * Obtener estadísticas
@@ -107,64 +125,35 @@ public class NotificacionController {
     }
 
     /**
-     * Demo del patrón Factory Method
+     * Demo del patrón Observer
      * GET /api/notificaciones/demo
      */
     @GetMapping("/demo")
     public ResponseEntity<Map<String, Object>> demo() {
         return ResponseEntity.ok(Map.of(
-            "patron", "Factory Method",
-            "proposito", "Crear diferentes tipos de notificaciones sin conocer las clases concretas",
+            "patron", "Observer",
+            "proposito", "Notificar automáticamente a usuarios interesados sobre eventos del sistema",
             "ventajas", List.of(
-                "Desacoplamiento entre cliente y clases concretas",
-                "Fácil extensión con nuevos tipos",
-                "Cumple principio Open/Closed",
-                "Centraliza lógica de creación"
+                "Desacoplamiento entre el Subject y los Observers",
+                "Los usuarios reciben notificaciones automáticas",
+                "Fácil agregar nuevos tipos de observadores",
+                "Notificaciones en tiempo real"
             ),
-            "tiposDisponibles", List.of("EMAIL", "SMS", "PUSH"),
+            "eventosDisponibles", List.of(
+                "CURSO_CREADO", "CURSO_ACTUALIZADO",
+                "TAREA_CREADA", "TAREA_ACTUALIZADA", "TAREA_CALIFICADA",
+                "ESTUDIANTE_INSCRITO", "MATERIAL_AGREGADO"
+            ),
             "ejemploUso", Map.of(
-                "descripcion", "Enviar notificación de bienvenida por email",
-                "endpoint", "POST /api/notificaciones",
+                "descripcion", "Cuando un profesor crea una tarea, todos los estudiantes inscritos reciben notificación automáticamente",
+                "endpoint", "POST /api/notificaciones/observer/register",
                 "body", Map.of(
-                    "tipo", "EMAIL",
-                    "destinatario", "estudiante@example.com",
-                    "asunto", "Bienvenido a EduLearn",
-                    "mensaje", "Gracias por registrarte en nuestra plataforma"
+                    "userId", 1,
+                    "userName", "Juan Pérez",
+                    "userRole", "estudiante"
                 )
             )
         ));
     }
 
-    // DTOs
-    static class NotificacionRequest {
-        private String tipo;
-        private String destinatario;
-        private String asunto;
-        private String mensaje;
-
-        public String getTipo() { return tipo; }
-        public void setTipo(String tipo) { this.tipo = tipo; }
-        public String getDestinatario() { return destinatario; }
-        public void setDestinatario(String destinatario) { this.destinatario = destinatario; }
-        public String getAsunto() { return asunto; }
-        public void setAsunto(String asunto) { this.asunto = asunto; }
-        public String getMensaje() { return mensaje; }
-        public void setMensaje(String mensaje) { this.mensaje = mensaje; }
-    }
-
-    static class NotificacionMultipleRequest {
-        private List<String> tipos;
-        private String destinatario;
-        private String asunto;
-        private String mensaje;
-
-        public List<String> getTipos() { return tipos; }
-        public void setTipos(List<String> tipos) { this.tipos = tipos; }
-        public String getDestinatario() { return destinatario; }
-        public void setDestinatario(String destinatario) { this.destinatario = destinatario; }
-        public String getAsunto() { return asunto; }
-        public void setAsunto(String asunto) { this.asunto = asunto; }
-        public String getMensaje() { return mensaje; }
-        public void setMensaje(String mensaje) { this.mensaje = mensaje; }
-    }
 }

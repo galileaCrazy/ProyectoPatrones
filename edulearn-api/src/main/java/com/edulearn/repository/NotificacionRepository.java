@@ -31,4 +31,9 @@ public interface NotificacionRepository extends JpaRepository<Notificacion, Long
      * Buscar notificaciones por tipo y estado
      */
     List<Notificacion> findByTipoAndEstado(String tipo, String estado);
+
+    /**
+     * Buscar notificaciones por destinatario y estado
+     */
+    List<Notificacion> findByDestinatarioAndEstado(String destinatario, String estado);
 }

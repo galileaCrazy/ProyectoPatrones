@@ -1,7 +1,9 @@
 package com.edulearn.controller;
 
 import com.edulearn.model.Evaluacion;
+import com.edulearn.patterns.behavioral.observer.NotificationEvent;
 import com.edulearn.repository.EvaluacionRepository;
+import com.edulearn.service.NotificacionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,9 @@ public class EvaluacionController {
 
     @Autowired
     private EvaluacionRepository evaluacionRepository;
+
+    @Autowired
+    private NotificacionService notificacionService;
 
     /**
      * GET /api/evaluaciones
@@ -94,6 +99,21 @@ public class EvaluacionController {
             evaluacion.setEstado(estado.toLowerCase());
 
             Evaluacion saved = evaluacionRepository.save(evaluacion);
+
+            // PATRÓN OBSERVER: Notificar creación de tarea/evaluación
+            NotificationEvent event = new NotificationEvent.Builder()
+                .eventType(NotificationEvent.EventType.TAREA_CREADA)
+                .title("Nueva tarea creada")
+                .message("Se ha creado la tarea: " + saved.getNombre())
+                .sourceUserId(null) // Aquí podrías obtener el ID del profesor desde el contexto
+                .targetId(saved.getId().intValue())
+                .targetType("EVALUACION")
+                .addMetadata("tipo", saved.getTipoEvaluacion())
+                .addMetadata("fechaCierre", saved.getFechaCierre())
+                .build();
+
+            notificacionService.notifyEvent(event);
+
             return ResponseEntity.ok(saved);
 
         } catch (Exception e) {

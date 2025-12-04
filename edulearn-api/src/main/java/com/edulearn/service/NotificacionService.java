@@ -1,7 +1,9 @@
 package com.edulearn.service;
 
 import com.edulearn.model.Notificacion;
-import com.edulearn.patterns.creational.factory_method.NotificacionFactory;
+import com.edulearn.patterns.behavioral.observer.NotificationEvent;
+import com.edulearn.patterns.behavioral.observer.NotificationSubject;
+import com.edulearn.patterns.behavioral.observer.UserObserver;
 import com.edulearn.repository.NotificacionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,7 +14,7 @@ import java.util.Map;
 
 /**
  * Servicio para gestionar notificaciones
- * Utiliza el patrón Factory Method (NotificacionFactory)
+ * Utiliza el patrón Observer para notificaciones internas del sistema
  */
 @Service
 public class NotificacionService {
@@ -20,50 +22,67 @@ public class NotificacionService {
     @Autowired
     private NotificacionRepository repository;
 
+    @Autowired
+    private NotificationSubject notificationSubject;
+
     /**
-     * Enviar notificación usando Factory Method
+     * PATRÓN OBSERVER - Enviar notificación interna del sistema
      */
-    public Notificacion enviarNotificacion(String tipo, String destinatario, String asunto, String mensaje) {
-        // Crear notificación en BD
-        Notificacion notif = new Notificacion(tipo, destinatario, asunto, mensaje);
-        notif = repository.save(notif);
+    public void notifyEvent(NotificationEvent event) {
+        notificationSubject.notifyObservers(event);
+    }
 
-        try {
-            // Usar Factory Method para crear y enviar notificación
-            NotificacionFactory factory = NotificacionFactory.getFactory(tipo);
-            boolean enviado = factory.enviarNotificacion(destinatario, asunto, mensaje);
+    /**
+     * PATRÓN OBSERVER - Registrar usuario como observador
+     */
+    public void registerUserObserver(Integer userId, String userName, String userRole) {
+        UserObserver observer = new UserObserver(userId, userName, userRole);
+        notificationSubject.attach(observer);
+    }
 
-            // Actualizar estado
-            if (enviado) {
-                notif.setEstado("ENVIADA");
-                notif.setFechaEnvio(LocalDateTime.now());
-            } else {
-                notif.setEstado("FALLIDA");
-                notif.setError("Validación de destinatario fallida");
-            }
-            notif.setIntentos(notif.getIntentos() + 1);
+    /**
+     * PATRÓN OBSERVER - Remover usuario como observador
+     */
+    public void unregisterUserObserver(Integer userId, String userName, String userRole) {
+        UserObserver observer = new UserObserver(userId, userName, userRole);
+        notificationSubject.detach(observer);
+    }
 
-        } catch (Exception e) {
-            notif.setEstado("FALLIDA");
-            notif.setError(e.getMessage());
-            notif.setIntentos(notif.getIntentos() + 1);
-        }
+    /**
+     * PATRÓN OBSERVER - Notificar a un usuario específico
+     */
+    public void notifySpecificUser(Integer userId, NotificationEvent event) {
+        notificationSubject.notifySpecificObserver(userId, event);
+    }
 
+    /**
+     * Obtener notificaciones no leídas de un usuario
+     */
+    public List<Notificacion> getUnreadNotifications(Integer userId) {
+        return repository.findByDestinatarioAndEstado(userId.toString(), "NO_LEIDA");
+    }
+
+    /**
+     * Marcar notificación como leída
+     */
+    public Notificacion markAsRead(Long notificationId) {
+        Notificacion notif = repository.findById(notificationId)
+            .orElseThrow(() -> new RuntimeException("Notificación no encontrada"));
+        notif.setEstado("LEIDA");
+        notif.setFechaEnvio(LocalDateTime.now());
         return repository.save(notif);
     }
 
     /**
-     * Enviar notificación múltiple (varios tipos a la vez)
+     * Marcar todas las notificaciones de un usuario como leídas
      */
-    public List<Notificacion> enviarNotificacionMultiple(
-        List<String> tipos,
-        String destinatario,
-        String asunto,
-        String mensaje
-    ) {
-        return tipos.stream()
-            .map(tipo -> enviarNotificacion(tipo, destinatario, asunto, mensaje))
-            .toList();
+    public void markAllAsRead(Integer userId) {
+        List<Notificacion> unread = getUnreadNotifications(userId);
+        unread.forEach(notif -> {
+            notif.setEstado("LEIDA");
+            notif.setFechaEnvio(LocalDateTime.now());
+        });
+        repository.saveAll(unread);
     }
 
     /**
@@ -95,22 +114,10 @@ public class NotificacionService {
     }
 
     /**
-     * Reintentar envío de notificación fallida
+     * Obtener número de notificaciones no leídas
      */
-    public Notificacion reintentarEnvio(Long id) {
-        Notificacion notif = repository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Notificación no encontrada"));
-
-        if (!"FALLIDA".equals(notif.getEstado())) {
-            throw new RuntimeException("Solo se pueden reintentar notificaciones fallidas");
-        }
-
-        return enviarNotificacion(
-            notif.getTipo(),
-            notif.getDestinatario(),
-            notif.getAsunto(),
-            notif.getMensaje()
-        );
+    public long getUnreadCount(Integer userId) {
+        return getUnreadNotifications(userId).size();
     }
 
     /**

@@ -189,17 +189,22 @@ public class SistemaEducativoFacade {
                 System.out.println("⚠️ Error en seguimiento\n");
             }
 
-            // ============= PASO 6: ENVIAR NOTIFICACIÓN =============
-            System.out.println("📧 PASO 6: Enviando notificación de bienvenida...");
+            // ============= PASO 6: ENVIAR NOTIFICACIÓN CON OBSERVER =============
+            System.out.println("📧 PASO 6: Enviando notificación de inscripción...");
             try {
-                // NotificacionService requiere: tipo, destinatario, asunto, mensaje
-                notificacionService.enviarNotificacion(
-                        "EMAIL",
-                        "estudiante" + request.getEstudianteId() + "@edulearn.com",
-                        "Inscripción exitosa",
-                        "Te has inscrito exitosamente al curso"
-                );
-                response.agregarDetalle("Notificación de bienvenida enviada");
+                // Usar patrón Observer para notificar inscripción
+                com.edulearn.patterns.behavioral.observer.NotificationEvent event =
+                    new com.edulearn.patterns.behavioral.observer.NotificationEvent.Builder()
+                        .eventType(com.edulearn.patterns.behavioral.observer.NotificationEvent.EventType.ESTUDIANTE_INSCRITO)
+                        .title("Nueva inscripción")
+                        .message("Estudiante " + request.getEstudianteId() + " inscrito al curso " + request.getCursoId())
+                        .sourceUserId(request.getEstudianteId())
+                        .targetId(request.getCursoId())
+                        .targetType("CURSO")
+                        .build();
+
+                notificacionService.notifyEvent(event);
+                response.agregarDetalle("Notificación de inscripción enviada");
                 System.out.println("✓ Notificación enviada\n");
             } catch (Exception e) {
                 response.agregarDetalle("Notificación no enviada (no crítico)");

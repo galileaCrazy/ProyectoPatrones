@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 interface Notificacion {
@@ -22,14 +22,6 @@ interface NotificationsPanelProps {
 export default function NotificationsPanel({ userRole }: NotificationsPanelProps) {
   const [notifications, setNotifications] = useState<Notificacion[]>([])
   const [loading, setLoading] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState({
-    tipo: 'EMAIL',
-    destinatario: '',
-    asunto: '',
-    mensaje: ''
-  })
 
   useEffect(() => {
     fetchNotifications()
@@ -50,68 +42,41 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
     }
   }
 
-  const handleSendNotification = async () => {
-    setSending(true)
+  const handleMarkAsRead = async (id: number) => {
     try {
-      const response = await fetch('http://localhost:8080/api/notificaciones', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+      const response = await fetch(`http://localhost:8080/api/notificaciones/${id}/leer`, {
+        method: 'PUT'
       })
 
       if (response.ok) {
-        alert('Notificación enviada exitosamente usando Factory Method!')
-        setFormData({
-          tipo: 'EMAIL',
-          destinatario: '',
-          asunto: '',
-          mensaje: ''
-        })
-        setShowForm(false)
         fetchNotifications()
-      } else {
-        alert('Error al enviar notificación')
       }
     } catch (error) {
-      console.error('Error:', error)
-      alert('Error al comunicarse con el servidor')
-    } finally {
-      setSending(false)
-    }
-  }
-
-  const handleRetry = async (id: number) => {
-    try {
-      const response = await fetch(`http://localhost:8080/api/notificaciones/${id}/reintentar`, {
-        method: 'POST'
-      })
-
-      if (response.ok) {
-        alert('Reintento de envío exitoso')
-        fetchNotifications()
-      } else {
-        alert('Error al reintentar')
-      }
-    } catch (error) {
-      console.error('Error:', error)
+      console.error('Error al marcar como leída:', error)
     }
   }
 
   const getNotificationIcon = (tipo: string) => {
     switch (tipo.toUpperCase()) {
+      case 'INTERNA':
+        return '🔔'
       case 'EMAIL':
-        return ''
+        return '📧'
       case 'SMS':
-        return ''
+        return '📱'
       case 'PUSH':
-        return ''
+        return '🔔'
       default:
-        return ''
+        return '📢'
     }
   }
 
   const getStatusBadge = (estado: string) => {
     switch (estado.toUpperCase()) {
+      case 'LEIDA':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+      case 'NO_LEIDA':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
       case 'ENVIADA':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
       case 'FALLIDA':
@@ -130,98 +95,19 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Notificaciones
-            <span className="ml-3 text-sm text-primary">Factory Method Pattern</span>
+            <span className="ml-3 text-sm text-primary">Observer Pattern</span>
           </h1>
           <p className="text-muted-foreground">
-            Gestión de notificaciones usando el patrón Factory Method
+            Sistema de notificaciones 
           </p>
         </div>
-        {(userRole === 'admin' || userRole === 'professor') && (
-          <Button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            {showForm ? 'Cancelar' : '+ Nueva Notificación'}
-          </Button>
-        )}
+        <Button
+          onClick={fetchNotifications}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+        >
+          Actualizar
+        </Button>
       </div>
-
-      {/* Factory Method Info Card */}
-      {/* Form */}
-      {showForm && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Enviar Nueva Notificación</CardTitle>
-            <CardDescription>
-              El tipo de notificación se crea dinámicamente usando Factory Method
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Tipo de Notificación *
-                </label>
-                <select
-                  value={formData.tipo}
-                  onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="EMAIL">Email</option>
-                  <option value="SMS">SMS</option>
-                  <option value="PUSH">Push Notification</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Destinatario *
-                </label>
-                <input
-                  type="text"
-                  placeholder={formData.tipo === 'EMAIL' ? 'correo@ejemplo.com' : formData.tipo === 'SMS' ? '+1234567890' : 'user_id'}
-                  value={formData.destinatario}
-                  onChange={(e) => setFormData({ ...formData, destinatario: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Asunto *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Asunto de la notificación"
-                  value={formData.asunto}
-                  onChange={(e) => setFormData({ ...formData, asunto: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Mensaje *
-                </label>
-                <textarea
-                  placeholder="Contenido de la notificación"
-                  value={formData.mensaje}
-                  onChange={(e) => setFormData({ ...formData, mensaje: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary h-24 resize-none"
-                />
-              </div>
-
-              <Button
-                onClick={handleSendNotification}
-                disabled={sending || !formData.destinatario || !formData.asunto || !formData.mensaje}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                {sending ? 'Enviando...' : 'Enviar Notificación'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Notifications List */}
       {loading ? (
@@ -265,15 +151,15 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
                       <p className="text-sm text-muted-foreground mb-3">{notif.mensaje}</p>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>
-                          Enviado: {new Date(notif.fechaEnvio).toLocaleString('es-ES')}
+                          Fecha: {notif.fechaEnvio ? new Date(notif.fechaEnvio).toLocaleString('es-ES') : 'Pendiente'}
                         </span>
                         <div className="flex items-center gap-2">
-                          {notif.estado.toUpperCase() === 'FALLIDA' && (userRole === 'admin' || userRole === 'professor') && (
+                          {notif.estado.toUpperCase() === 'NO_LEIDA' && (
                             <Button
-                              onClick={() => handleRetry(notif.id)}
-                              className="h-8 text-xs"
+                              onClick={() => handleMarkAsRead(notif.id)}
+                              className="h-8 text-xs bg-primary hover:bg-primary/90"
                             >
-                              Reintentar
+                              Marcar como leída
                             </Button>
                           )}
                         </div>

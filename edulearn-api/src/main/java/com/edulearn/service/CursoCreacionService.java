@@ -1,6 +1,7 @@
 package com.edulearn.service;
 
 import com.edulearn.model.*;
+import com.edulearn.patterns.behavioral.observer.NotificationEvent;
 import com.edulearn.patterns.creational.abstractfactory.*;
 import com.edulearn.patterns.creational.builder.CursoCompleteBuilder;
 import com.edulearn.patterns.creational.builder.CursoCompleteBuilder.CursoCompletoDTO;
@@ -45,6 +46,9 @@ public class CursoCreacionService {
 
     @Autowired
     private EvaluacionRepository evaluacionRepository;
+
+    @Autowired
+    private NotificacionService notificacionService;
 
     /**
      * Crea un curso completo usando los patrones Abstract Factory y Builder
@@ -160,6 +164,21 @@ public class CursoCreacionService {
             resultado.put("factoryUsada", factory.getTipoFactory());
 
             logger.info("✅ Curso creado exitosamente: {} (ID: {})", cursoGuardado.getNombre(), cursoGuardado.getId());
+
+            // PASO 8: Notificar creación del curso usando patrón Observer
+            NotificationEvent event = new NotificationEvent.Builder()
+                .eventType(NotificationEvent.EventType.CURSO_CREADO)
+                .title("Nuevo curso creado")
+                .message("El curso '" + cursoGuardado.getNombre() + "' ha sido creado exitosamente")
+                .sourceUserId(request.profesorId)
+                .targetId(cursoGuardado.getId())
+                .targetType("CURSO")
+                .addMetadata("tipoCurso", cursoGuardado.getTipoCurso())
+                .addMetadata("totalModulos", cursoCompleto.modulos.size())
+                .build();
+
+            notificacionService.notifyEvent(event);
+            logger.info("✓ Notificación enviada a observadores");
 
         } catch (Exception e) {
             logger.error("❌ Error al crear curso: {}", e.getMessage(), e);
