@@ -1,4 +1,4 @@
-package com.edulearn.patterns.singleton;
+package com.edulearn.patterns.creational.singleton;
 
 import java.util.HashMap;
 import java.util.Map;
