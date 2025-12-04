@@ -1,12 +1,21 @@
 package com.edulearn.patterns.creational.singleton;
 
 import com.edulearn.model.ConfiguracionSistema;
+import com.edulearn.model.PeriodoAcademico;
+import com.edulearn.model.EventoCalendario;
 import com.edulearn.repository.ConfiguracionSistemaRepository;
+import com.edulearn.repository.PeriodoAcademicoRepository;
+import com.edulearn.repository.EventoCalendarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -16,16 +25,22 @@ import java.util.concurrent.ConcurrentHashMap;
  * un punto de acceso global a ella.
  *
  * Uso en EduLearn: Gestionar configuraciones del sistema de forma centralizada,
- * asegurando que todos los componentes accedan a la misma instancia.
+ * incluyendo:
+ * - Configuraciones generales del sistema
+ * - Períodos académicos
+ * - Calendario académico
  *
  * Ventajas:
  * - Control estricto sobre la instancia única
- * - Acceso global a las configuraciones
+ * - Acceso global centralizado a configuraciones, períodos y calendario
  * - Inicialización perezosa (lazy initialization)
  * - Thread-safe con sincronización
+ * - Caché en memoria para optimizar accesos frecuentes
  */
 @Component
 public class ConfiguracionSistemaManager {
+
+    private static final Logger logger = LoggerFactory.getLogger(ConfiguracionSistemaManager.class);
 
     // Instancia única (singleton)
     private static ConfiguracionSistemaManager instancia;
@@ -33,8 +48,14 @@ public class ConfiguracionSistemaManager {
     // Caché en memoria para configuraciones (thread-safe)
     private final Map<String, String> cache;
 
-    // Referencia al repositorio
+    // Caché para período académico actual
+    private PeriodoAcademico periodoActualCache;
+    private LocalDateTime ultimaActualizacionPeriodo;
+
+    // Referencias a repositorios
     private ConfiguracionSistemaRepository repository;
+    private PeriodoAcademicoRepository periodoRepository;
+    private EventoCalendarioRepository calendarioRepository;
 
     /**
      * Constructor privado para evitar instanciación externa
@@ -59,12 +80,22 @@ public class ConfiguracionSistemaManager {
     }
 
     /**
-     * Inyectar el repositorio después de la creación
+     * Inyectar los repositorios después de la creación
      * (Spring no puede inyectar en constructores privados)
      */
     public void setRepository(ConfiguracionSistemaRepository repository) {
         this.repository = repository;
         cargarConfiguracionesDesdeDB();
+    }
+
+    public void setPeriodoRepository(PeriodoAcademicoRepository periodoRepository) {
+        this.periodoRepository = periodoRepository;
+        logger.info("📅 Repositorio de períodos académicos configurado");
+    }
+
+    public void setCalendarioRepository(EventoCalendarioRepository calendarioRepository) {
+        this.calendarioRepository = calendarioRepository;
+        logger.info("📆 Repositorio de eventos de calendario configurado");
     }
 
     /**
@@ -263,5 +294,230 @@ public class ConfiguracionSistemaManager {
      */
     public int getCantidadConfiguraciones() {
         return cache.size();
+    }
+
+    // ========== GESTIÓN DE PERÍODOS ACADÉMICOS ==========
+
+    /**
+     * Obtener el período académico actual
+     */
+    public PeriodoAcademico getPeriodoActual() {
+        // Si tenemos caché y es reciente (menos de 5 minutos), usarlo
+        if (periodoActualCache != null && ultimaActualizacionPeriodo != null) {
+            if (LocalDateTime.now().minusMinutes(5).isBefore(ultimaActualizacionPeriodo)) {
+                return periodoActualCache;
+            }
+        }
+
+        // Buscar en BD
+        if (periodoRepository != null) {
+            List<PeriodoAcademico> periodosActuales = periodoRepository.findByEsActual(true);
+            if (!periodosActuales.isEmpty()) {
+                periodoActualCache = periodosActuales.get(0);
+                ultimaActualizacionPeriodo = LocalDateTime.now();
+                logger.info("✅ Período actual cargado: {}", periodoActualCache.getCodigo());
+                return periodoActualCache;
+            }
+        }
+
+        logger.warn("⚠️ No se encontró período académico actual");
+        return null;
+    }
+
+    /**
+     * Establecer un período como actual
+     */
+    public synchronized void setPeriodoActual(Long periodoId) {
+        if (periodoRepository == null) {
+            logger.error("❌ Repositorio de períodos no configurado");
+            return;
+        }
+
+        // Desmarcar todos los períodos actuales
+        List<PeriodoAcademico> periodosActivos = periodoRepository.findByEsActual(true);
+        for (PeriodoAcademico p : periodosActivos) {
+            p.setEsActual(false);
+            periodoRepository.save(p);
+        }
+
+        // Marcar el nuevo período como actual
+        Optional<PeriodoAcademico> nuevoPeriodo = periodoRepository.findById(periodoId);
+        if (nuevoPeriodo.isPresent()) {
+            PeriodoAcademico periodo = nuevoPeriodo.get();
+            periodo.setEsActual(true);
+            periodo.setEstado("ACTIVO");
+            periodoRepository.save(periodo);
+
+            // Actualizar caché
+            periodoActualCache = periodo;
+            ultimaActualizacionPeriodo = LocalDateTime.now();
+
+            logger.info("✅ Período actual establecido: {}", periodo.getCodigo());
+        }
+    }
+
+    /**
+     * Obtener todos los períodos académicos
+     */
+    public List<PeriodoAcademico> getTodosPeriodos() {
+        if (periodoRepository != null) {
+            return periodoRepository.findAllByOrderByFechaInicioDesc();
+        }
+        return List.of();
+    }
+
+    /**
+     * Buscar período por código
+     */
+    public Optional<PeriodoAcademico> getPeriodoPorCodigo(String codigo) {
+        if (periodoRepository != null) {
+            return periodoRepository.findByCodigo(codigo);
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Crear o actualizar período académico
+     */
+    public PeriodoAcademico guardarPeriodo(PeriodoAcademico periodo) {
+        if (periodoRepository != null) {
+            PeriodoAcademico guardado = periodoRepository.save(periodo);
+            logger.info("💾 Período guardado: {}", guardado.getCodigo());
+
+            // Si es el período actual, actualizar caché
+            if (guardado.getEsActual()) {
+                periodoActualCache = guardado;
+                ultimaActualizacionPeriodo = LocalDateTime.now();
+            }
+
+            return guardado;
+        }
+        return periodo;
+    }
+
+    /**
+     * Verificar si un período existe
+     */
+    public boolean existePeriodo(String codigo) {
+        if (periodoRepository != null) {
+            return periodoRepository.existsByCodigo(codigo);
+        }
+        return false;
+    }
+
+    // ========== GESTIÓN DE CALENDARIO ACADÉMICO ==========
+
+    /**
+     * Obtener todos los eventos del calendario
+     */
+    public List<EventoCalendario> getTodosEventos() {
+        if (calendarioRepository != null) {
+            return calendarioRepository.findAllByOrderByFechaInicioAsc();
+        }
+        return List.of();
+    }
+
+    /**
+     * Obtener eventos en un rango de fechas
+     */
+    public List<EventoCalendario> getEventosEntreFechas(LocalDateTime inicio, LocalDateTime fin) {
+        if (calendarioRepository != null) {
+            return calendarioRepository.findEventosEntreFechas(inicio, fin);
+        }
+        return List.of();
+    }
+
+    /**
+     * Obtener eventos del período actual
+     */
+    public List<EventoCalendario> getEventosPeriodoActual() {
+        PeriodoAcademico periodoActual = getPeriodoActual();
+        if (periodoActual != null && calendarioRepository != null) {
+            return calendarioRepository.findByPeriodoAcademico(periodoActual);
+        }
+        return List.of();
+    }
+
+    /**
+     * Obtener eventos de un curso específico
+     */
+    public List<EventoCalendario> getEventosPorCurso(Integer cursoId) {
+        if (calendarioRepository != null) {
+            return calendarioRepository.findByCursoId(cursoId);
+        }
+        return List.of();
+    }
+
+    /**
+     * Obtener eventos de un curso en un rango de fechas
+     */
+    public List<EventoCalendario> getEventosPorCursoEntreFechas(Integer cursoId, LocalDateTime inicio, LocalDateTime fin) {
+        if (calendarioRepository != null) {
+            return calendarioRepository.findEventosPorCursoEntreFechas(cursoId, inicio, fin);
+        }
+        return List.of();
+    }
+
+    /**
+     * Crear o actualizar evento del calendario
+     */
+    public EventoCalendario guardarEvento(EventoCalendario evento) {
+        if (calendarioRepository != null) {
+            EventoCalendario guardado = calendarioRepository.save(evento);
+            logger.info("📆 Evento guardado: {} - {}", guardado.getTitulo(), guardado.getFechaInicio());
+            return guardado;
+        }
+        return evento;
+    }
+
+    /**
+     * Eliminar evento del calendario
+     */
+    public void eliminarEvento(Long eventoId) {
+        if (calendarioRepository != null) {
+            calendarioRepository.deleteById(eventoId);
+            logger.info("🗑️ Evento eliminado: {}", eventoId);
+        }
+    }
+
+    /**
+     * Obtener eventos próximos (próximos 7 días)
+     */
+    public List<EventoCalendario> getEventosProximos() {
+        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime en7Dias = ahora.plusDays(7);
+        return getEventosEntreFechas(ahora, en7Dias);
+    }
+
+    /**
+     * Verificar si hay inscripciones abiertas
+     */
+    public boolean hayInscripcionesAbiertas() {
+        PeriodoAcademico periodoActual = getPeriodoActual();
+        return periodoActual != null && periodoActual.inscripcionesAbiertas();
+    }
+
+    /**
+     * Obtener fechas de inscripción del período actual
+     */
+    public Map<String, LocalDate> getFechasInscripcion() {
+        Map<String, LocalDate> fechas = new HashMap<>();
+        PeriodoAcademico periodoActual = getPeriodoActual();
+
+        if (periodoActual != null) {
+            fechas.put("inicio", periodoActual.getFechaInicioInscripciones());
+            fechas.put("fin", periodoActual.getFechaFinInscripciones());
+        }
+
+        return fechas;
+    }
+
+    /**
+     * Limpiar caché de períodos (forzar recarga)
+     */
+    public void limpiarCachePeriodos() {
+        periodoActualCache = null;
+        ultimaActualizacionPeriodo = null;
+        logger.info("🗑️ Caché de períodos limpiada");
     }
 }
