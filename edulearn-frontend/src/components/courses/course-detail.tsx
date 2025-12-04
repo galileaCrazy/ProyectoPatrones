@@ -30,6 +30,12 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editFormData, setEditFormData] = useState<Partial<Course>>({})
+  const [saving, setSaving] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [history, setHistory] = useState<any[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
 
   // Convertir rol de student/professor/admin a ESTUDIANTE/DOCENTE/ADMIN
   const mapRole = (role: 'student' | 'professor' | 'admin'): 'ESTUDIANTE' | 'DOCENTE' | 'ADMIN' => {
@@ -71,6 +77,114 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
     fetchCourse()
   }, [courseId])
 
+  const handleOpenEditModal = () => {
+    if (course) {
+      setEditFormData({
+        nombre: course.nombre,
+        descripcion: course.descripcion,
+        tipoCurso: course.tipoCurso,
+        duracion: course.duracion,
+        periodoAcademico: course.periodoAcademico,
+        estrategiaEvaluacion: course.estrategiaEvaluacion
+      })
+      setShowEditModal(true)
+    }
+  }
+
+  const handleSaveEdit = async () => {
+    if (!courseId) return
+
+    try {
+      setSaving(true)
+
+      const response = await fetch(`http://localhost:8080/api/cursos/${courseId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(editFormData)
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar el curso')
+      }
+
+      alert('Curso actualizado exitosamente!')
+
+      // Recargar el curso
+      const courseResponse = await fetch(`http://localhost:8080/api/cursos/${courseId}`)
+      if (courseResponse.ok) {
+        const updatedCourse = await courseResponse.json()
+        setCourse(updatedCourse)
+      }
+
+      setShowEditModal(false)
+    } catch (error) {
+      console.error('Error al actualizar curso:', error)
+      alert('Error al actualizar el curso.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleViewHistory = async () => {
+    if (!courseId) return
+
+    try {
+      setLoadingHistory(true)
+      setShowHistoryModal(true)
+
+      const response = await fetch(`http://localhost:8080/api/cursos/${courseId}/historial`)
+
+      if (!response.ok) {
+        throw new Error('Error al cargar el historial')
+      }
+
+      const data = await response.json()
+      setHistory(data.historial || [])
+    } catch (error) {
+      console.error('Error al cargar historial:', error)
+      alert('Error al cargar el historial.')
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
+  const handleUndo = async () => {
+    if (!courseId) return
+
+    if (!confirm('¿Deshacer el último cambio realizado en este curso?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/cursos/${courseId}/deshacer`, {
+        method: 'POST'
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Error al deshacer cambio')
+      }
+
+      const result = await response.json()
+
+      alert(`Cambio deshecho!\n\nOperación: ${result.operacionDeshecha}`)
+
+      // Recargar el curso
+      const courseResponse = await fetch(`http://localhost:8080/api/cursos/${courseId}`)
+      if (courseResponse.ok) {
+        const updatedCourse = await courseResponse.json()
+        setCourse(updatedCourse)
+      }
+
+      setShowHistoryModal(false)
+    } catch (error) {
+      console.error('Error al deshacer cambio:', error)
+      alert(error instanceof Error ? error.message : 'Error al deshacer cambio.')
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-8 max-w-7xl mx-auto">
@@ -111,9 +225,39 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
             <p className="text-muted-foreground mt-2">Código: {course.codigo}</p>
             <p className="text-sm text-muted-foreground mt-1">{course.descripcion}</p>
           </div>
-          <span className="bg-primary/10 text-primary px-4 py-2 rounded-lg">
-            {course.tipoCurso}
-          </span>
+          <div className="flex gap-2 items-start">
+            <span className="bg-primary/10 text-primary px-4 py-2 rounded-lg">
+              {course.tipoCurso}
+            </span>
+            {role !== 'student' && (
+              <>
+                <Button
+                  onClick={handleOpenEditModal}
+                  variant="outline"
+                  className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                  title="Editar curso (Patrón Memento)"
+                >
+                  Editar
+                </Button>
+                <Button
+                  onClick={handleViewHistory}
+                  variant="outline"
+                  className="border-purple-500 text-purple-600 hover:bg-purple-50"
+                  title="Ver historial de cambios (Patrón Memento)"
+                >
+                  Historial
+                </Button>
+                <Button
+                  onClick={handleUndo}
+                  variant="outline"
+                  className="border-orange-500 text-orange-600 hover:bg-orange-50"
+                  title="Deshacer último cambio (Patrón Memento)"
+                >
+                  Deshacer
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Course Info */}
@@ -261,6 +405,181 @@ export default function CourseDetailView({ courseId, role, onBack }: CourseDetai
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Modal de Edición */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background border border-border rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-foreground mb-4">
+              Editar Curso
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Patrón Memento: Los cambios se guardarán en el historial y podrán deshacerse.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Nombre del curso
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.nombre || ''}
+                  onChange={(e) => setEditFormData({...editFormData, nombre: e.target.value})}
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Descripción
+                </label>
+                <textarea
+                  value={editFormData.descripcion || ''}
+                  onChange={(e) => setEditFormData({...editFormData, descripcion: e.target.value})}
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Tipo de curso
+                  </label>
+                  <select
+                    value={editFormData.tipoCurso || ''}
+                    onChange={(e) => setEditFormData({...editFormData, tipoCurso: e.target.value})}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground"
+                  >
+                    <option value="Virtual">Virtual</option>
+                    <option value="Híbrido">Híbrido</option>
+                    <option value="Presencial">Presencial</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Duración (horas)
+                  </label>
+                  <input
+                    type="number"
+                    value={editFormData.duracion || ''}
+                    onChange={(e) => setEditFormData({...editFormData, duracion: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Período Académico
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.periodoAcademico || ''}
+                    onChange={(e) => setEditFormData({...editFormData, periodoAcademico: e.target.value})}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Estrategia de Evaluación
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.estrategiaEvaluacion || ''}
+                    onChange={(e) => setEditFormData({...editFormData, estrategiaEvaluacion: e.target.value})}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowEditModal(false)}
+                variant="outline"
+                className="flex-1"
+                disabled={saving}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                disabled={saving}
+              >
+                {saving ? 'Guardando...' : 'Guardar Cambios'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Historial */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background border border-border rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-foreground mb-4">
+              Historial de Cambios
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Patrón Memento: Histórico de hasta 20 cambios reversibles
+            </p>
+
+            {loadingHistory ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-muted-foreground">Cargando historial...</p>
+              </div>
+            ) : history.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No hay cambios en el historial</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {history.map((item, index) => (
+                  <div key={index} className="p-4 rounded-lg bg-muted/50 border border-border">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-semibold text-foreground">{item.operacion}</p>
+                        <p className="text-sm text-muted-foreground">{item.descripcion}</p>
+                      </div>
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                        {item.estado}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(item.fecha).toLocaleString('es-ES')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowHistoryModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cerrar
+              </Button>
+              {history.length > 0 && (
+                <Button
+                  onClick={handleUndo}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  Deshacer Último Cambio
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

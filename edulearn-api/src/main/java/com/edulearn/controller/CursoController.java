@@ -7,6 +7,10 @@ import com.edulearn.patterns.creational.builder.CursoBuilder;
 import com.edulearn.patterns.creational.builder.CursoDirector;
 import com.edulearn.patterns.creational.prototype.CursoPrototype;
 import com.edulearn.patterns.comportamiento.chain_of_responsibility.SolicitudValidacion;
+import com.edulearn.patterns.behavioral.state.CursoContext;
+import com.edulearn.patterns.behavioral.memento.CursoCaretaker;
+import com.edulearn.patterns.behavioral.memento.CursoMemento;
+import com.edulearn.patterns.behavioral.memento.CursoOriginator;
 import com.edulearn.repository.CursoRepository;
 import com.edulearn.repository.InscripcionRepository;
 import com.edulearn.repository.ModuloRepository;
@@ -41,6 +45,9 @@ public class CursoController {
 
     @Autowired
     private CadenaVisualizacionCursosService cadenaVisualizacionService;
+
+    @Autowired
+    private CursoCaretaker caretaker;
 
     @GetMapping
     public List<Curso> getAll() {
@@ -117,36 +124,6 @@ public class CursoController {
     @PostMapping
     public Curso create(@RequestBody Curso curso) {
         return cursoRepository.save(curso);
-    }
-
-    @PutMapping("/{id}")
-    public Curso update(@PathVariable Integer id, @RequestBody Curso cursoActualizado) {
-        Curso cursoExistente = cursoRepository.findById(id).orElse(null);
-        if (cursoExistente == null) {
-            return null;
-        }
-
-        // Actualizar solo los campos que vienen en el request
-        if (cursoActualizado.getNombre() != null) {
-            cursoExistente.setNombre(cursoActualizado.getNombre());
-        }
-        if (cursoActualizado.getDescripcion() != null) {
-            cursoExistente.setDescripcion(cursoActualizado.getDescripcion());
-        }
-        if (cursoActualizado.getTipoCurso() != null) {
-            cursoExistente.setTipoCurso(cursoActualizado.getTipoCurso());
-        }
-        if (cursoActualizado.getDuracion() != null) {
-            cursoExistente.setDuracion(cursoActualizado.getDuracion());
-        }
-        if (cursoActualizado.getEstado() != null) {
-            cursoExistente.setEstado(cursoActualizado.getEstado());
-        }
-        if (cursoActualizado.getEstrategiaEvaluacion() != null) {
-            cursoExistente.setEstrategiaEvaluacion(cursoActualizado.getEstrategiaEvaluacion());
-        }
-
-        return cursoRepository.save(cursoExistente);
     }
 
     @DeleteMapping("/{id}")
@@ -406,5 +383,305 @@ public class CursoController {
         }
 
         return cursoRepository.save(cursoNuevo);
+    }
+
+    // ========== ENDPOINTS CON PATRÓN STATE ==========
+
+    /**
+     * POST /api/cursos/{id}/publicar
+     * Publicar curso (transición de en_creacion a activo)
+     */
+    @PostMapping("/{id}/publicar")
+    public ResponseEntity<?> publicarCurso(@PathVariable Integer id) {
+        try {
+            Curso curso = cursoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Curso no encontrado"));
+
+            // Guardar estado antes del cambio
+            CursoOriginator originator = new CursoOriginator(curso);
+            CursoMemento memento = originator.guardarEstado("PUBLICAR", "Publicación del curso");
+            caretaker.guardarMemento(id, memento);
+
+            // Cambiar estado usando State pattern
+            CursoContext context = new CursoContext(curso);
+            context.publicar();
+
+            // Guardar cambios
+            cursoRepository.save(curso);
+
+            logger.info("Curso {} publicado exitosamente", id);
+            return ResponseEntity.ok(Map.of(
+                "mensaje", "Curso publicado exitosamente",
+                "estadoAnterior", memento.getEstado(),
+                "estadoActual", curso.getEstado()
+            ));
+        } catch (IllegalStateException e) {
+            logger.error("Error al publicar curso {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/cursos/{id}/activar
+     * Activar curso
+     */
+    @PostMapping("/{id}/activar")
+    public ResponseEntity<?> activarCurso(@PathVariable Integer id) {
+        try {
+            Curso curso = cursoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Curso no encontrado"));
+
+            CursoOriginator originator = new CursoOriginator(curso);
+            CursoMemento memento = originator.guardarEstado("ACTIVAR", "Activación del curso");
+            caretaker.guardarMemento(id, memento);
+
+            CursoContext context = new CursoContext(curso);
+            context.activar();
+
+            cursoRepository.save(curso);
+
+            logger.info("Curso {} activado exitosamente", id);
+            return ResponseEntity.ok(Map.of(
+                "mensaje", "Curso activado exitosamente",
+                "estadoAnterior", memento.getEstado(),
+                "estadoActual", curso.getEstado()
+            ));
+        } catch (IllegalStateException e) {
+            logger.error("Error al activar curso {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/cursos/{id}/finalizar
+     * Finalizar curso
+     */
+    @PostMapping("/{id}/finalizar")
+    public ResponseEntity<?> finalizarCurso(@PathVariable Integer id) {
+        try {
+            Curso curso = cursoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Curso no encontrado"));
+
+            CursoOriginator originator = new CursoOriginator(curso);
+            CursoMemento memento = originator.guardarEstado("FINALIZAR", "Finalización del curso");
+            caretaker.guardarMemento(id, memento);
+
+            CursoContext context = new CursoContext(curso);
+            context.finalizar();
+
+            cursoRepository.save(curso);
+
+            logger.info("Curso {} finalizado exitosamente", id);
+            return ResponseEntity.ok(Map.of(
+                "mensaje", "Curso finalizado exitosamente",
+                "estadoAnterior", memento.getEstado(),
+                "estadoActual", curso.getEstado()
+            ));
+        } catch (IllegalStateException e) {
+            logger.error("Error al finalizar curso {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/cursos/{id}/archivar
+     * Archivar curso
+     */
+    @PostMapping("/{id}/archivar")
+    public ResponseEntity<?> archivarCurso(@PathVariable Integer id) {
+        try {
+            Curso curso = cursoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Curso no encontrado"));
+
+            CursoOriginator originator = new CursoOriginator(curso);
+            CursoMemento memento = originator.guardarEstado("ARCHIVAR", "Archivo del curso");
+            caretaker.guardarMemento(id, memento);
+
+            CursoContext context = new CursoContext(curso);
+            context.archivar();
+
+            cursoRepository.save(curso);
+
+            logger.info("Curso {} archivado exitosamente", id);
+            return ResponseEntity.ok(Map.of(
+                "mensaje", "Curso archivado exitosamente",
+                "estadoAnterior", memento.getEstado(),
+                "estadoActual", curso.getEstado()
+            ));
+        } catch (IllegalStateException e) {
+            logger.error("Error al archivar curso {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/cursos/{id}/estado
+     * Obtener información del estado actual
+     */
+    @GetMapping("/{id}/estado")
+    public ResponseEntity<?> obtenerEstado(@PathVariable Integer id) {
+        try {
+            Curso curso = cursoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Curso no encontrado"));
+
+            CursoContext context = new CursoContext(curso);
+
+            return ResponseEntity.ok(Map.of(
+                "cursoId", id,
+                "estadoActual", context.getEstadoActual(),
+                "descripcion", context.getDescripcionEstado(),
+                "puedeInscribirEstudiantes", context.puedeInscribirEstudiantes(),
+                "puedeModificarContenido", context.puedeModificarContenido(),
+                "puedeEliminar", context.puedeEliminar()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ========== ENDPOINTS CON PATRÓN MEMENTO ==========
+
+    /**
+     * PUT /api/cursos/{id}
+     * Actualizar curso con soporte para Memento (operación reversible)
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateConMemento(@PathVariable Integer id, @RequestBody Curso cursoActualizado) {
+        try {
+            Curso cursoExistente = cursoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Curso no encontrado"));
+
+            // Guardar estado antes de la modificación
+            CursoOriginator originator = new CursoOriginator(cursoExistente);
+            CursoMemento memento = originator.guardarEstado("ACTUALIZAR", "Actualización de curso");
+            caretaker.guardarMemento(id, memento);
+
+            // Actualizar campos
+            if (cursoActualizado.getNombre() != null) {
+                cursoExistente.setNombre(cursoActualizado.getNombre());
+            }
+            if (cursoActualizado.getDescripcion() != null) {
+                cursoExistente.setDescripcion(cursoActualizado.getDescripcion());
+            }
+            if (cursoActualizado.getTipoCurso() != null) {
+                cursoExistente.setTipoCurso(cursoActualizado.getTipoCurso());
+            }
+            if (cursoActualizado.getDuracion() != null) {
+                cursoExistente.setDuracion(cursoActualizado.getDuracion());
+            }
+            if (cursoActualizado.getEstado() != null) {
+                cursoExistente.setEstado(cursoActualizado.getEstado());
+            }
+            if (cursoActualizado.getEstrategiaEvaluacion() != null) {
+                cursoExistente.setEstrategiaEvaluacion(cursoActualizado.getEstrategiaEvaluacion());
+            }
+
+            Curso cursoGuardado = cursoRepository.save(cursoExistente);
+
+            return ResponseEntity.ok(Map.of(
+                "curso", cursoGuardado,
+                "mensaje", "Curso actualizado exitosamente",
+                "historialDisponible", caretaker.hayMementosDisponibles(id)
+            ));
+        } catch (Exception e) {
+            logger.error("Error al actualizar curso {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/cursos/{id}/deshacer
+     * Deshacer último cambio en el curso
+     */
+    @PostMapping("/{id}/deshacer")
+    public ResponseEntity<?> deshacerCambio(@PathVariable Integer id) {
+        try {
+            if (!caretaker.hayMementosDisponibles(id)) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "No hay cambios para deshacer"
+                ));
+            }
+
+            Curso curso = cursoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Curso no encontrado"));
+
+            // Recuperar memento
+            Optional<CursoMemento> mementoOpt = caretaker.obtenerUltimoMemento(id);
+            if (mementoOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "No se pudo recuperar el memento"
+                ));
+            }
+
+            CursoMemento memento = mementoOpt.get();
+
+            // Restaurar estado
+            CursoOriginator originator = new CursoOriginator(curso);
+            originator.restaurarEstado(memento);
+
+            // Guardar cambios
+            cursoRepository.save(curso);
+
+            logger.info("Se deshizo cambio en curso {}: {}", id, memento.getOperacion());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("mensaje", "Cambio deshecho exitosamente");
+            response.put("operacionDeshecha", memento.getOperacion());
+            response.put("descripcion", memento.getDescripcionCambio());
+            response.put("fechaOriginal", memento.getFechaCreacion());
+            response.put("curso", curso);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error al deshacer cambio en curso {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/cursos/{id}/historial
+     * Obtener historial de cambios del curso
+     */
+    @GetMapping("/{id}/historial")
+    public ResponseEntity<?> obtenerHistorial(@PathVariable Integer id) {
+        try {
+            List<CursoMemento> historial = caretaker.obtenerHistorial(id);
+
+            List<Map<String, Object>> historialFormateado = historial.stream()
+                .map(m -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("operacion", m.getOperacion());
+                    item.put("descripcion", m.getDescripcionCambio());
+                    item.put("fecha", m.getFechaCreacion());
+                    item.put("estado", m.getEstado());
+                    return item;
+                })
+                .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("cursoId", id);
+            response.put("historial", historialFormateado);
+            response.put("total", historial.size());
+            response.put("hayMementosDisponibles", caretaker.hayMementosDisponibles(id));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * DELETE /api/cursos/{id}/historial
+     * Limpiar historial de cambios
+     */
+    @DeleteMapping("/{id}/historial")
+    public ResponseEntity<?> limpiarHistorial(@PathVariable Integer id) {
+        caretaker.limpiarHistorial(id);
+        return ResponseEntity.ok(Map.of(
+            "mensaje", "Historial limpiado exitosamente",
+            "cursoId", id
+        ));
     }
 }

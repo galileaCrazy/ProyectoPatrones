@@ -153,6 +153,53 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
     }
   }
 
+  const handleEditCourse = (cursoId: number) => {
+    // Redirigir a la vista de edición del curso
+    onSelectCourse(cursoId.toString())
+  }
+
+  const handleDeleteCourse = async (cursoId: number, cursoNombre: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar el curso "${cursoNombre}"?\n\nEsta acción no se puede deshacer.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/cursos/${cursoId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar el curso')
+      }
+
+      alert('Curso eliminado exitosamente')
+
+      // Recargar la lista de cursos
+      const usuarioStr = localStorage.getItem('usuario')
+      if (usuarioStr) {
+        const usuario = JSON.parse(usuarioStr)
+        const userId = usuario.id
+        const rolMap: Record<string, string> = {
+          'student': 'estudiante',
+          'professor': 'profesor',
+          'admin': 'administrador'
+        }
+        const rolBackend = rolMap[role] || 'estudiante'
+        const url = `http://localhost:8080/api/cursos/por-usuario/${userId}?rol=${rolBackend}`
+
+        const coursesResponse = await fetch(url)
+        if (coursesResponse.ok) {
+          const data = await coursesResponse.json()
+          setCourses(data)
+          setFilteredCourses(data)
+        }
+      }
+    } catch (error) {
+      console.error('Error al eliminar curso:', error)
+      alert('Error al eliminar el curso. Por favor intente nuevamente.')
+    }
+  }
+
   const handleDuplicateCourse = (cursoId: number, cursoNombre: string) => {
     setDuplicateDialog({
       isOpen: true,
@@ -408,28 +455,56 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
                     <p className="font-semibold text-foreground">{course.periodoAcademico}</p>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSelectCourse(course.id.toString())
-                    }}
-                    className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                  >
-                    Ver Detalles
-                  </Button>
-                  {role !== 'student' && (
+                <div className="space-y-2 mt-4">
+                  <div className="flex gap-2">
                     <Button
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleDuplicateCourse(course.id, course.nombre)
+                        onSelectCourse(course.id.toString())
                       }}
-                      variant="outline"
-                      className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                      title="Duplicar curso para nuevo período"
+                      className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
-                      Duplicar
+                      Ver Detalles
                     </Button>
+                    {role !== 'student' && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDuplicateCourse(course.id, course.nombre)
+                        }}
+                        variant="outline"
+                        className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        title="Duplicar curso (Patrón Prototype)"
+                      >
+                        Duplicar
+                      </Button>
+                    )}
+                  </div>
+                  {role !== 'student' && (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditCourse(course.id)
+                        }}
+                        variant="outline"
+                        className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50"
+                        title="Editar curso (Memento: operación reversible)"
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteCourse(course.id, course.nombre)
+                        }}
+                        variant="outline"
+                        className="flex-1 border-red-500 text-red-600 hover:bg-red-50"
+                        title="Eliminar curso"
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>
