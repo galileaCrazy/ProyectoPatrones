@@ -47,7 +47,7 @@ public class CursoCompleteBuilder {
     public CursoCompleteBuilder(CourseComponentFactory factory) {
         this.factory = factory;
         this.codigo = "CURSO-" + System.currentTimeMillis();
-        
+
         // Establecer tipo de curso según la factory
         if (factory instanceof VirtualCourseFactory) {
             this.tipoCurso = "virtual";
@@ -80,7 +80,7 @@ public class CursoCompleteBuilder {
         public String nombre;
         public String descripcion;
         public Integer orden;
-        
+
         public MaterialDTO(String nombre, String descripcion, Integer orden) {
             this.nombre = nombre;
             this.descripcion = descripcion;
@@ -91,7 +91,7 @@ public class CursoCompleteBuilder {
     public static class EvaluacionDTO {
         public String nombre;
         public String descripcion;
-        
+
         public EvaluacionDTO(String nombre, String descripcion) {
             this.nombre = nombre;
             this.descripcion = descripcion;
@@ -179,11 +179,11 @@ public class CursoCompleteBuilder {
         if (modulos.isEmpty()) {
             throw new IllegalStateException("Debe agregar un módulo antes de agregar materiales");
         }
-        
+
         ModuloDTO ultimoModulo = modulos.get(modulos.size() - 1);
         int orden = ultimoModulo.materiales.size() + 1;
         ultimoModulo.materiales.add(new MaterialDTO(nombre, descripcion, orden));
-        
+
         return this;
     }
 
@@ -223,10 +223,10 @@ public class CursoCompleteBuilder {
         if (moduloIndex >= modulos.size()) {
             throw new IllegalArgumentException("Índice de módulo inválido");
         }
-        
+
         ModuloDTO modulo = modulos.get(moduloIndex);
         modulo.evaluaciones.add(new EvaluacionDTO(nombre, descripcion));
-        
+
         return this;
     }
 
