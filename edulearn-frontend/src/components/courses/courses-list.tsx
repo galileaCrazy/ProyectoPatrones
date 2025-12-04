@@ -200,7 +200,7 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
 
       const result = await response.json()
 
-      alert(`✅ Curso duplicado exitosamente!\n\n${result.mensaje}\nNuevo ID: ${result.curso.id}`)
+      alert(`Curso duplicado exitosamente!\n\n${result.mensaje}\nNuevo ID: ${result.curso.id}`)
 
       // Recargar la lista de cursos
       const usuarioStr = localStorage.getItem('usuario')
@@ -428,7 +428,7 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
                       className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                       title="Duplicar curso para nuevo período"
                     >
-                      📋 Duplicar
+                      Duplicar
                     </Button>
                   )}
                 </div>
