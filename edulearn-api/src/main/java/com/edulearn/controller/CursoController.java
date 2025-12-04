@@ -301,25 +301,76 @@ public class CursoController {
     /**
      * POST /api/cursos/{id}/clonar
      * Clonar un curso existente usando patrón Prototype
+     * Incluye la duplicación de todos los módulos asociados al curso
      */
     @PostMapping("/{id}/clonar")
-    public Curso clonarCurso(@PathVariable Integer id, @RequestBody(required = false) Map<String, String> params) {
-        Curso cursoOriginal = cursoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Curso no encontrado con ID: " + id));
+    public ResponseEntity<?> clonarCurso(@PathVariable Integer id, @RequestBody(required = false) Map<String, String> params) {
+        try {
+            logger.info("📋 Iniciando clonación de curso con ID: {}", id);
 
-        CursoPrototype prototype = new CursoPrototype(cursoOriginal);
+            // Buscar el curso original
+            Curso cursoOriginal = cursoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Curso no encontrado con ID: " + id));
 
-        Curso cursoClon;
-        if (params != null && (params.containsKey("nombre") || params.containsKey("periodoAcademico"))) {
-            cursoClon = prototype.cloneConPersonalizacion(
-                params.get("nombre"),
-                params.get("periodoAcademico")
-            );
-        } else {
-            cursoClon = prototype.clone();
+            // Crear el prototype
+            CursoPrototype prototype = new CursoPrototype(cursoOriginal);
+
+            // Clonar el curso
+            Curso cursoClon;
+            if (params != null && (params.containsKey("nombre") || params.containsKey("periodoAcademico"))) {
+                cursoClon = prototype.cloneConPersonalizacion(
+                    params.get("nombre"),
+                    params.get("periodoAcademico")
+                );
+                logger.info("✅ Curso clonado con personalización - Nombre: {}, Período: {}",
+                    params.get("nombre"), params.get("periodoAcademico"));
+            } else {
+                cursoClon = prototype.clone();
+                logger.info("✅ Curso clonado sin personalización");
+            }
+
+            // Guardar el curso clonado
+            Curso cursoGuardado = cursoRepository.save(cursoClon);
+            logger.info("💾 Curso guardado con nuevo ID: {}", cursoGuardado.getId());
+
+            // Clonar los módulos del curso original
+            List<Modulo> modulosOriginales = moduloRepository.findByCursoIdOrderByOrdenAsc(id);
+            logger.info("📚 Encontrados {} módulos para clonar", modulosOriginales.size());
+
+            int modulosClonados = 0;
+            for (Modulo moduloOriginal : modulosOriginales) {
+                Modulo moduloClon = new Modulo();
+                moduloClon.setCursoId(cursoGuardado.getId());
+                moduloClon.setNombre(moduloOriginal.getNombre());
+                moduloClon.setTitulo(moduloOriginal.getTitulo());
+                moduloClon.setDescripcion(moduloOriginal.getDescripcion());
+                moduloClon.setOrden(moduloOriginal.getOrden());
+                moduloClon.setEstado("draft"); // Los módulos clonados empiezan en draft
+                moduloClon.setTipo(moduloOriginal.getTipo());
+                moduloClon.setDuracionEstimada(moduloOriginal.getDuracionEstimada());
+
+                moduloRepository.save(moduloClon);
+                modulosClonados++;
+            }
+
+            logger.info("✅ Se clonaron {} módulos exitosamente", modulosClonados);
+
+            // Construir respuesta
+            Map<String, Object> response = new HashMap<>();
+            response.put("curso", cursoGuardado);
+            response.put("modulosClonados", modulosClonados);
+            response.put("mensaje", String.format("Curso duplicado exitosamente con %d módulos", modulosClonados));
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("❌ Error al clonar curso: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                    "error", "Error al clonar curso",
+                    "mensaje", e.getMessage()
+                ));
         }
-
-        return cursoRepository.save(cursoClon);
     }
 
     /**

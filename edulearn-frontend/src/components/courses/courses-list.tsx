@@ -25,6 +25,12 @@ interface CoursesListViewProps {
   onCreateCourse?: () => void
 }
 
+interface DuplicateDialogData {
+  isOpen: boolean
+  cursoId: number | null
+  cursoNombre: string
+}
+
 export default function CoursesListView({ role, onSelectCourse, onCreateCourse }: CoursesListViewProps) {
   const [selectedFilter, setSelectedFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -33,6 +39,16 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showAdvancedHelp, setShowAdvancedHelp] = useState(false)
+  const [duplicateDialog, setDuplicateDialog] = useState<DuplicateDialogData>({
+    isOpen: false,
+    cursoId: null,
+    cursoNombre: ''
+  })
+  const [duplicateFormData, setDuplicateFormData] = useState({
+    nombre: '',
+    periodoAcademico: ''
+  })
+  const [duplicating, setDuplicating] = useState(false)
   const searchEngine = new SearchEngine()
 
   useEffect(() => {
@@ -134,6 +150,85 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
         console.error('Error en búsqueda:', error)
         setFilteredCourses([])
       }
+    }
+  }
+
+  const handleDuplicateCourse = (cursoId: number, cursoNombre: string) => {
+    setDuplicateDialog({
+      isOpen: true,
+      cursoId,
+      cursoNombre
+    })
+    // Pre-cargar con sugerencias
+    const currentYear = new Date().getFullYear()
+    const nextSemester = new Date().getMonth() >= 6 ? `${currentYear + 1}-1` : `${currentYear}-2`
+    setDuplicateFormData({
+      nombre: `${cursoNombre} (Copia)`,
+      periodoAcademico: nextSemester
+    })
+  }
+
+  const handleCloseDuplicateDialog = () => {
+    setDuplicateDialog({
+      isOpen: false,
+      cursoId: null,
+      cursoNombre: ''
+    })
+    setDuplicateFormData({
+      nombre: '',
+      periodoAcademico: ''
+    })
+  }
+
+  const handleConfirmDuplicate = async () => {
+    if (!duplicateDialog.cursoId) return
+
+    try {
+      setDuplicating(true)
+
+      const response = await fetch(`http://localhost:8080/api/cursos/${duplicateDialog.cursoId}/clonar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(duplicateFormData)
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al duplicar el curso')
+      }
+
+      const result = await response.json()
+
+      alert(`✅ Curso duplicado exitosamente!\n\n${result.mensaje}\nNuevo ID: ${result.curso.id}`)
+
+      // Recargar la lista de cursos
+      const usuarioStr = localStorage.getItem('usuario')
+      if (usuarioStr) {
+        const usuario = JSON.parse(usuarioStr)
+        const userId = usuario.id
+        const rolMap: Record<string, string> = {
+          'student': 'estudiante',
+          'professor': 'profesor',
+          'admin': 'administrador'
+        }
+        const rolBackend = rolMap[role] || 'estudiante'
+        const url = `http://localhost:8080/api/cursos/por-usuario/${userId}?rol=${rolBackend}`
+
+        const coursesResponse = await fetch(url)
+        if (coursesResponse.ok) {
+          const data = await coursesResponse.json()
+          setCourses(data)
+          setFilteredCourses(data)
+        }
+      }
+
+      handleCloseDuplicateDialog()
+    } catch (error) {
+      console.error('Error al duplicar curso:', error)
+      alert('Error al duplicar el curso. Por favor intente nuevamente.')
+    } finally {
+      setDuplicating(false)
     }
   }
 
@@ -313,18 +408,102 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
                     <p className="font-semibold text-foreground">{course.periodoAcademico}</p>
                   </div>
                 </div>
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSelectCourse(course.id.toString())
-                  }}
-                  className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  Ver Detalles
-                </Button>
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSelectCourse(course.id.toString())
+                    }}
+                    className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    Ver Detalles
+                  </Button>
+                  {role !== 'student' && (
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDuplicateCourse(course.id, course.nombre)
+                      }}
+                      variant="outline"
+                      className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                      title="Duplicar curso para nuevo período"
+                    >
+                      📋 Duplicar
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Modal de Duplicación */}
+      {duplicateDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background border border-border rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-foreground mb-4">
+              Duplicar Curso
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Creando una copia de: <strong>{duplicateDialog.cursoNombre}</strong>
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              🎯 <strong>Patrón Prototype:</strong> Se duplicará el curso completo incluyendo todos sus módulos.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Nombre del nuevo curso
+                </label>
+                <input
+                  type="text"
+                  value={duplicateFormData.nombre}
+                  onChange={(e) => setDuplicateFormData({
+                    ...duplicateFormData,
+                    nombre: e.target.value
+                  })}
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Ej: Programación Avanzada 2025-1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Período Académico
+                </label>
+                <input
+                  type="text"
+                  value={duplicateFormData.periodoAcademico}
+                  onChange={(e) => setDuplicateFormData({
+                    ...duplicateFormData,
+                    periodoAcademico: e.target.value
+                  })}
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Ej: 2025-1"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={handleCloseDuplicateDialog}
+                variant="outline"
+                className="flex-1"
+                disabled={duplicating}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleConfirmDuplicate}
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                disabled={duplicating || !duplicateFormData.nombre || !duplicateFormData.periodoAcademico}
+              >
+                {duplicating ? 'Duplicando...' : 'Duplicar Curso'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

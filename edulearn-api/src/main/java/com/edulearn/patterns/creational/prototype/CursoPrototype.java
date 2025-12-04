@@ -28,8 +28,13 @@ public class CursoPrototype implements Cloneable {
             // No copiar el ID (será generado por la BD)
             clonado.setId(null);
 
-            // Copiar todos los demás campos
-            clonado.setCodigo(null); // Código debe ser único, se asignará después
+            // Generar un código único basado en el timestamp (últimos 6 dígitos)
+            String codigoBase = curso.getCodigo() != null ? curso.getCodigo() : "CURSO";
+            long timestamp = System.currentTimeMillis();
+            String timestampCorto = String.valueOf(timestamp).substring(7); // Últimos 6 dígitos
+            String nuevoCodigo = codigoBase + "-" + timestampCorto;
+            clonado.setCodigo(nuevoCodigo);
+
             clonado.setNombre(curso.getNombre() + " (Copia)");
             clonado.setDescripcion(curso.getDescripcion());
             clonado.setTipoCurso(curso.getTipoCurso());
@@ -37,6 +42,8 @@ public class CursoPrototype implements Cloneable {
             clonado.setProfesorTitularId(curso.getProfesorTitularId());
             clonado.setPeriodoAcademico(curso.getPeriodoAcademico());
             clonado.setDuracion(curso.getDuracion());
+            clonado.setEstrategiaEvaluacion(curso.getEstrategiaEvaluacion());
+            clonado.setCupoMaximo(curso.getCupoMaximo());
 
             return clonado;
         } catch (Exception e) {
