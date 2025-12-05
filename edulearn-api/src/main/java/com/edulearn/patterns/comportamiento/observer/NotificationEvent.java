@@ -1,4 +1,4 @@
-package com.edulearn.patterns.behavioral.observer;
+package com.edulearn.patterns.comportamiento.observer;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -131,5 +131,8 @@ public class NotificationEvent {
         public static final String TAREA_CALIFICADA = "TAREA_CALIFICADA";
         public static final String ESTUDIANTE_INSCRITO = "ESTUDIANTE_INSCRITO";
         public static final String MATERIAL_AGREGADO = "MATERIAL_AGREGADO";
+        public static final String BECA_SOLICITADA = "BECA_SOLICITADA";
+        public static final String BECA_APROBADA = "BECA_APROBADA";
+        public static final String BECA_RECHAZADA = "BECA_RECHAZADA";
     }
 }

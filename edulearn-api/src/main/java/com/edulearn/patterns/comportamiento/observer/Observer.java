@@ -1,4 +1,4 @@
-package com.edulearn.patterns.behavioral.observer;
+package com.edulearn.patterns.comportamiento.observer;
 
 /**
  * PATRÓN OBSERVER - Interfaz Observer

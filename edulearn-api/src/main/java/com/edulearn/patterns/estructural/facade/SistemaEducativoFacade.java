@@ -2,6 +2,7 @@ package com.edulearn.patterns.estructural.facade;
 
 import com.edulearn.model.Curso;
 import com.edulearn.model.Inscripcion;
+import com.edulearn.patterns.comportamiento.observer.NotificationOrchestrator;
 import com.edulearn.patterns.comportamiento.template_method.InscripcionTemplateService;
 import com.edulearn.patterns.comportamiento.template_method.dto.ResultadoInscripcion;
 import com.edulearn.patterns.comportamiento.template_method.dto.SolicitudInscripcion;
@@ -40,6 +41,9 @@ import org.springframework.stereotype.Component;
 public class SistemaEducativoFacade {
 
     // ============= SUBSISTEMAS INTERNOS =============
+     @Autowired
+    private NotificationOrchestrator notificationOrchestrator;
+
     @Autowired
     private SubsistemaValidacion subsistemaValidacion;
 
@@ -193,9 +197,9 @@ public class SistemaEducativoFacade {
             System.out.println("📧 PASO 6: Enviando notificación de inscripción...");
             try {
                 // Usar patrón Observer para notificar inscripción
-                com.edulearn.patterns.behavioral.observer.NotificationEvent event =
-                    new com.edulearn.patterns.behavioral.observer.NotificationEvent.Builder()
-                        .eventType(com.edulearn.patterns.behavioral.observer.NotificationEvent.EventType.ESTUDIANTE_INSCRITO)
+                com.edulearn.patterns.comportamiento.observer.NotificationEvent event =
+                    new com.edulearn.patterns.comportamiento.observer.NotificationEvent.Builder()
+                        .eventType(com.edulearn.patterns.comportamiento.observer.NotificationEvent.EventType.ESTUDIANTE_INSCRITO)
                         .title("Nueva inscripción")
                         .message("Estudiante " + request.getEstudianteId() + " inscrito al curso " + request.getCursoId())
                         .sourceUserId(request.getEstudianteId())
@@ -203,7 +207,8 @@ public class SistemaEducativoFacade {
                         .targetType("CURSO")
                         .build();
 
-                notificacionService.notifyEvent(event);
+                notificationOrchestrator.notifyRoleObservers("estudiante", event);
+                notificationOrchestrator.notifyRoleObservers("profesor", event);
                 response.agregarDetalle("Notificación de inscripción enviada");
                 System.out.println("✓ Notificación enviada\n");
             } catch (Exception e) {

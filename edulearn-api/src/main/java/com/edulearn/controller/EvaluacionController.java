@@ -1,8 +1,10 @@
 package com.edulearn.controller;
 
 import com.edulearn.model.Evaluacion;
-import com.edulearn.patterns.behavioral.observer.NotificationEvent;
+import com.edulearn.patterns.comportamiento.observer.NotificationEvent;
+import com.edulearn.patterns.comportamiento.observer.NotificationOrchestrator;
 import com.edulearn.repository.EvaluacionRepository;
+import com.edulearn.repository.CursoRepository;
 import com.edulearn.service.NotificacionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,12 @@ public class EvaluacionController {
 
     @Autowired
     private NotificacionService notificacionService;
+
+    @Autowired
+    private NotificationOrchestrator notificationOrchestrator;
+
+    @Autowired
+    private CursoRepository cursoRepository;
 
     /**
      * GET /api/evaluaciones
@@ -98,21 +106,30 @@ public class EvaluacionController {
             String estado = (String) params.getOrDefault("estado", "Borrador");
             evaluacion.setEstado(estado.toLowerCase());
 
-            Evaluacion saved = evaluacionRepository.save(evaluacion);
+           Evaluacion saved = evaluacionRepository.save(evaluacion);
 
-            // PATRÓN OBSERVER: Notificar creación de tarea/evaluación
-            NotificationEvent event = new NotificationEvent.Builder()
-                .eventType(NotificationEvent.EventType.TAREA_CREADA)
-                .title("Nueva tarea creada")
-                .message("Se ha creado la tarea: " + saved.getNombre())
-                .sourceUserId(null) // Aquí podrías obtener el ID del profesor desde el contexto
-                .targetId(saved.getId().intValue())
-                .targetType("EVALUACION")
-                .addMetadata("tipo", saved.getTipoEvaluacion())
-                .addMetadata("fechaCierre", saved.getFechaCierre())
-                .build();
+            // PATRÓN OBSERVER: Notificar creación de tarea a estudiantes inscritos del curso
+            Integer cursoId = null;
+            String cursoNombre = "";
+            try {
+                Object cursoIdObj = params.get("cursoId");
+                if (cursoIdObj != null) {
+                    cursoId = Integer.valueOf(cursoIdObj.toString());
+                    cursoNombre = cursoRepository.findById(cursoId)
+                        .map(c -> c.getNombre())
+                        .orElse("");
+                }
+            } catch (Exception ex) {
+                // Si falla la obtención del curso, se enviará con el ID sin nombre
+            }
 
-            notificacionService.notifyEvent(event);
+            if (cursoId != null) {
+                notificationOrchestrator.notifyAssignmentCreated(
+                    saved,
+                    cursoId,
+                    cursoNombre
+                );
+            }
 
             return ResponseEntity.ok(saved);
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SearchEngine } from '@/patterns/interpreter/search-interpreter'
+import { API_URL } from '@/lib/api'
 
 interface Curso {
   id: number
@@ -76,7 +77,7 @@ export default function CoursesListView({ role, onSelectCourse, onCreateCourse }
         const rolBackend = rolMap[role] || 'estudiante'
 
         // Usar endpoint con Chain of Responsibility pattern
-        const url = `http://localhost:8080/api/cursos/por-usuario/${userId}?rol=${rolBackend}`
+        const url = `${API_URL}/cursos/por-usuario/${userId}?rol=${rolBackend}`
 
         // Llamar al endpoint del backend
         const response = await fetch(url)

@@ -10,7 +10,7 @@ import com.edulearn.repository.UsuarioRepository;
 import com.edulearn.patterns.creational.abstractfactory.*;
 import com.edulearn.patterns.builder.CursoBuilder;
 import com.edulearn.patterns.prototype.CursoPrototype;
-import com.edulearn.patterns.singleton.ConfiguracionSistema;
+import com.edulearn.patterns.creational.singleton.ConfiguracionSistema;
 import com.edulearn.patterns.facade.GestionCursosFacade;
 import com.edulearn.patterns.bridge.*;
 import com.edulearn.patterns.flyweight.*;

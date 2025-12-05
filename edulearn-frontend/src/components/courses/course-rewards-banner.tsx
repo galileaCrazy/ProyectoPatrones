@@ -4,11 +4,15 @@ import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Trophy, Award, Lock, Download, Loader2, AlertCircle } from "lucide-react"
+import { Trophy, Award, Lock, Download, Loader2, AlertCircle, Save, RotateCcw, History } from "lucide-react"
 
 interface CourseRewardsBannerProps {
   cursoId: string
   estudianteId: number
+  onGuardarProgreso?: () => Promise<void>
+  onRestaurarProgreso?: () => Promise<void>
+  historialCheckpoints?: number
+  guardando?: boolean
 }
 
 interface DecoradorInfo {
@@ -31,7 +35,14 @@ interface DecoradorInfo {
   cursoCompletado: boolean
 }
 
-export function CourseRewardsBanner({ cursoId, estudianteId }: CourseRewardsBannerProps) {
+export function CourseRewardsBanner({
+  cursoId,
+  estudianteId,
+  onGuardarProgreso,
+  onRestaurarProgreso,
+  historialCheckpoints = 0,
+  guardando = false
+}: CourseRewardsBannerProps) {
   const [decoradores, setDecoradores] = useState<DecoradorInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -253,6 +264,64 @@ export function CourseRewardsBanner({ cursoId, estudianteId }: CourseRewardsBann
             </div>
           )}
         </div>
+
+        {/* Botones de Memento Pattern - Gestión de Progreso */}
+        {onGuardarProgreso && onRestaurarProgreso && (
+          <div className="mt-6 pt-6 border-t border-border/50">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-purple-500/10">
+                <History className="w-5 h-5 text-purple-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Gestión de Progreso</h3>
+                <p className="text-sm text-muted-foreground">
+                  Guarda y restaura tu progreso en cualquier momento
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Botón Guardar */}
+              <Button
+                onClick={onGuardarProgreso}
+                disabled={guardando}
+                variant="outline"
+                className="border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              >
+                {guardando ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Guardar Progreso
+                  </>
+                )}
+              </Button>
+
+              {/* Botón Restaurar */}
+              <Button
+                onClick={onRestaurarProgreso}
+                disabled={historialCheckpoints === 0}
+                variant="outline"
+                className="border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Restaurar Último
+              </Button>
+
+              {/* Indicador de Checkpoints */}
+              <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800">
+                <History className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="text-sm font-semibold text-foreground">
+                  {historialCheckpoints} {historialCheckpoints === 1 ? 'checkpoint' : 'checkpoints'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

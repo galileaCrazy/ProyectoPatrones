@@ -1,6 +1,8 @@
 package com.edulearn.controller;
 
 import com.edulearn.model.Inscripcion;
+import com.edulearn.model.Estudiante;
+import com.edulearn.model.Curso;
 import com.edulearn.repository.InscripcionRepository;
 import com.edulearn.repository.EstudianteRepository;
 import com.edulearn.repository.CursoRepository;
@@ -10,6 +12,8 @@ import com.edulearn.patterns.comportamiento.template_method.dto.ResultadoInscrip
 import com.edulearn.patterns.estructural.facade.SistemaEducativoFacade;
 import com.edulearn.patterns.estructural.facade.dto.InscripcionRequest;
 import com.edulearn.patterns.estructural.facade.dto.InscripcionResponse;
+import com.edulearn.patterns.comportamiento.observer.NotificationOrchestrator;
+import com.edulearn.patterns.comportamiento.observer.NotificationEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +33,8 @@ public class InscripcionController {
     private InscripcionTemplateService inscripcionTemplateService;
     @Autowired
     private SistemaEducativoFacade sistemaEducativoFacade;
+    @Autowired
+    private NotificationOrchestrator notificationOrchestrator;
 
     @GetMapping
     public List<Map<String, Object>> getAll() {
@@ -143,6 +149,49 @@ public class InscripcionController {
             ResultadoInscripcion resultado = inscripcionTemplateService.procesarInscripcion(solicitud);
 
             if (resultado.isExitoso()) {
+                // 📧 ENVIAR NOTIFICACIONES
+                try {
+                    Estudiante estudiante = estudianteRepository.findById(estudianteId).orElse(null);
+                    Curso curso = cursoRepository.findById(cursoId).orElse(null);
+
+                    if (estudiante != null && curso != null) {
+                        String estudianteNombre = estudiante.getNombre() + " " + estudiante.getApellidos();
+
+                        // 1. Suscribir estudiante al curso
+                        notificationOrchestrator.subscribeStudentToCourse(
+                            estudianteId,
+                            estudianteNombre,
+                            cursoId
+                        );
+
+                        // 2. Notificar al profesor del curso
+                        // Buscar la inscripción recién creada
+                        Optional<Inscripcion> inscripcionOpt = inscripcionRepository
+                            .findByEstudianteIdAndCursoId(estudianteId, cursoId);
+
+                        if (inscripcionOpt.isPresent()) {
+                            // Registrar profesor del curso de forma defensiva para garantizar notificación
+                            if (curso.getProfesorTitularId() != null) {
+                                try {
+                                    notificationOrchestrator.registerCourseTeacher(curso.getId(), curso.getProfesorTitularId());
+                                } catch (Exception ex) {
+                                    System.err.println("⚠️ No se pudo registrar profesor del curso en notificaciones: " + ex.getMessage());
+                                }
+                            }
+
+                            notificationOrchestrator.notifyStudentEnrolled(
+                                inscripcionOpt.get(),
+                                estudianteNombre,
+                                curso.getNombre()
+                            );
+                        }
+
+                        System.out.println("📧 Notificaciones enviadas para inscripción rápida");
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ Error al enviar notificaciones: " + e.getMessage());
+                }
+
                 return ResponseEntity.ok(resultado);
             } else {
                 return ResponseEntity.badRequest().body(resultado);
@@ -157,7 +206,68 @@ public class InscripcionController {
 
     @PostMapping
     public Inscripcion create(@RequestBody Inscripcion inscripcion) {
-        return inscripcionRepository.save(inscripcion);
+        Inscripcion saved = inscripcionRepository.save(inscripcion);
+
+        // 📧 ENVIAR NOTIFICACIONES
+        try {
+            Estudiante estudiante = estudianteRepository.findById(saved.getEstudianteId()).orElse(null);
+            Curso curso = cursoRepository.findById(saved.getCursoId()).orElse(null);
+
+            if (estudiante != null && curso != null) {
+                String estudianteNombre = estudiante.getNombre() + " " + estudiante.getApellidos();
+
+                // Si es una beca, notificar a ADMINISTRADORES
+                if ("BECA".equals(saved.getModalidad())) {
+                    NotificationEvent event = new NotificationEvent.Builder()
+                        .eventType(NotificationEvent.EventType.BECA_SOLICITADA)
+                        .title("Nueva Solicitud de Beca")
+                        .message(String.format("Estudiante %s ha solicitado una beca para el curso '%s' (Tipo: %s)",
+                            estudianteNombre, curso.getNombre(), saved.getTipoBeca()))
+                        .sourceUserId(saved.getEstudianteId())
+                        .targetId(saved.getCursoId())
+                        .targetType("INSCRIPCION")
+                        .addMetadata("inscripcionId", saved.getId())
+                        .addMetadata("tipoBeca", saved.getTipoBeca())
+                        .addMetadata("codigoBeca", saved.getCodigoBeca())
+                        .build();
+
+                    notificationOrchestrator.notifyRoleObservers("admin", event);
+                    System.out.println("📧 Notificación de solicitud de beca enviada a administradores");
+                }
+
+                // Si es inscripción activa, notificar al profesor y suscribir estudiante
+                if ("Activa".equals(saved.getEstadoInscripcion())) {
+                    // Suscribir estudiante al curso
+                    notificationOrchestrator.subscribeStudentToCourse(
+                        saved.getEstudianteId(),
+                        estudianteNombre,
+                        saved.getCursoId()
+                    );
+
+                    // Registrar profesor del curso de forma defensiva para garantizar notificación
+                    if (curso.getProfesorTitularId() != null) {
+                        try {
+                            notificationOrchestrator.registerCourseTeacher(curso.getId(), curso.getProfesorTitularId());
+                        } catch (Exception ex) {
+                            System.err.println("⚠️ No se pudo registrar profesor del curso en notificaciones: " + ex.getMessage());
+                        }
+                    }
+
+                    // Notificar al profesor
+                    notificationOrchestrator.notifyStudentEnrolled(
+                        saved,
+                        estudianteNombre,
+                        curso.getNombre()
+                    );
+
+                    System.out.println("📧 Notificaciones de inscripción enviadas");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Error al enviar notificaciones: " + e.getMessage());
+        }
+
+        return saved;
     }
 
     @DeleteMapping("/{id}")
@@ -318,7 +428,49 @@ public class InscripcionController {
 
         // Cambiar estado a Activa
         inscripcion.setEstadoInscripcion("Activa");
-        inscripcionRepository.save(inscripcion);
+        Inscripcion saved = inscripcionRepository.save(inscripcion);
+
+        // 📧 NOTIFICAR AL ESTUDIANTE Y PROFESOR
+        try {
+            Estudiante estudiante = estudianteRepository.findById(saved.getEstudianteId()).orElse(null);
+            Curso curso = cursoRepository.findById(saved.getCursoId()).orElse(null);
+
+            if (estudiante != null && curso != null) {
+                String estudianteNombre = estudiante.getNombre() + " " + estudiante.getApellidos();
+
+                // 1. Notificar SOLO al estudiante sobre la aprobación
+                NotificationEvent eventEstudiante = new NotificationEvent.Builder()
+                    .eventType(NotificationEvent.EventType.BECA_APROBADA)
+                    .title("Beca Aprobada")
+                    .message(String.format("Tu solicitud de beca para el curso '%s' ha sido APROBADA. Ya puedes acceder al curso.",
+                        curso.getNombre()))
+                    .sourceUserId(null)
+                    .targetId(curso.getId())
+                    .targetType("INSCRIPCION")
+                    .addMetadata("tipoBeca", saved.getTipoBeca())
+                    .build();
+
+                notificationOrchestrator.notifySpecificUser(saved.getEstudianteId(), eventEstudiante);
+
+                // 2. Suscribir estudiante al curso
+                notificationOrchestrator.subscribeStudentToCourse(
+                    saved.getEstudianteId(),
+                    estudianteNombre,
+                    saved.getCursoId()
+                );
+
+                // 3. Notificar al profesor sobre el nuevo estudiante
+                notificationOrchestrator.notifyStudentEnrolled(
+                    saved,
+                    estudianteNombre,
+                    curso.getNombre()
+                );
+
+                System.out.println("📧 Notificaciones de aprobación de beca enviadas");
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Error al enviar notificaciones: " + e.getMessage());
+        }
 
         return ResponseEntity.ok(Map.of(
             "exitoso", true,
@@ -356,7 +508,34 @@ public class InscripcionController {
         // Cambiar estado a Rechazada y guardar motivo
         inscripcion.setEstadoInscripcion("Rechazada");
         inscripcion.setMotivoRechazo(motivo);
-        inscripcionRepository.save(inscripcion);
+        Inscripcion saved = inscripcionRepository.save(inscripcion);
+
+        // 📧 NOTIFICAR AL ESTUDIANTE SOBRE EL RECHAZO
+        try {
+            Estudiante estudiante = estudianteRepository.findById(saved.getEstudianteId()).orElse(null);
+            Curso curso = cursoRepository.findById(saved.getCursoId()).orElse(null);
+
+            if (estudiante != null && curso != null) {
+                // Notificar SOLO al estudiante sobre el rechazo
+                NotificationEvent eventEstudiante = new NotificationEvent.Builder()
+                    .eventType(NotificationEvent.EventType.BECA_RECHAZADA)
+                    .title("Solicitud de Beca Rechazada")
+                    .message(String.format("Tu solicitud de beca para el curso '%s' ha sido rechazada. Motivo: %s",
+                        curso.getNombre(), motivo))
+                    .sourceUserId(null)
+                    .targetId(curso.getId())
+                    .targetType("INSCRIPCION")
+                    .addMetadata("tipoBeca", saved.getTipoBeca())
+                    .addMetadata("motivo", motivo)
+                    .build();
+
+                notificationOrchestrator.notifySpecificUser(saved.getEstudianteId(), eventEstudiante);
+
+                System.out.println("📧 Notificación de rechazo de beca enviada al estudiante");
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Error al enviar notificación de rechazo: " + e.getMessage());
+        }
 
         return ResponseEntity.ok(Map.of(
             "exitoso", true,

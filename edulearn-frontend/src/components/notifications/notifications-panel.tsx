@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { API_URL } from '@/lib/api'
 
 interface Notificacion {
   id: number
@@ -17,20 +18,28 @@ interface Notificacion {
 
 interface NotificationsPanelProps {
   userRole: 'student' | 'professor' | 'admin'
+  userId?: number
 }
 
-export default function NotificationsPanel({ userRole }: NotificationsPanelProps) {
+export default function NotificationsPanel({ userRole, userId }: NotificationsPanelProps) {
   const [notifications, setNotifications] = useState<Notificacion[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetchNotifications()
-  }, [])
+    if (userId) {
+      fetchNotifications()
+    }
+  }, [userId])
 
   const fetchNotifications = async () => {
+    if (!userId) {
+      console.warn('No se puede cargar notificaciones sin userId')
+      return
+    }
+
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8080/api/notificaciones')
+      const response = await fetch(`${API_URL}/notificaciones/usuario/${userId}/no-leidas`)
       if (response.ok) {
         const data = await response.json()
         setNotifications(data)
@@ -44,7 +53,7 @@ export default function NotificationsPanel({ userRole }: NotificationsPanelProps
 
   const handleMarkAsRead = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/notificaciones/${id}/leer`, {
+      const response = await fetch(`${API_URL}/notificaciones/${id}/leer`, {
         method: 'PUT'
       })
 
