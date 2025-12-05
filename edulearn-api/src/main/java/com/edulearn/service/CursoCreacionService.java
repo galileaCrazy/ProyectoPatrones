@@ -1,7 +1,8 @@
 package com.edulearn.service;
 
 import com.edulearn.model.*;
-import com.edulearn.patterns.behavioral.observer.NotificationEvent;
+import com.edulearn.patterns.comportamiento.observer.NotificationEvent;
+import com.edulearn.patterns.comportamiento.observer.NotificationOrchestrator;
 import com.edulearn.patterns.creational.abstractfactory.*;
 import com.edulearn.patterns.creational.builder.CursoCompleteBuilder;
 import com.edulearn.patterns.creational.builder.CursoCompleteBuilder.CursoCompletoDTO;
@@ -49,6 +50,9 @@ public class CursoCreacionService {
 
     @Autowired
     private NotificacionService notificacionService;
+
+    @Autowired
+private NotificationOrchestrator notificationOrchestrator;
 
     /**
      * Crea un curso completo usando los patrones Abstract Factory y Builder
@@ -114,6 +118,14 @@ public class CursoCreacionService {
             Curso cursoGuardado = cursoRepository.save(cursoCompleto.curso);
             logger.info("✓ Curso guardado con ID: {}", cursoGuardado.getId());
 
+            // Registrar profesor asignado al curso en el sistema de notificaciones
+            try {
+                notificationOrchestrator.registerCourseTeacher(cursoGuardado.getId(), request.profesorId);
+                logger.info("✓ Profesor {} registrado para curso {} en notificaciones", request.profesorId, cursoGuardado.getId());
+            } catch (Exception e) {
+                logger.warn("⚠️ No se pudo registrar el profesor {} para el curso {} en notificaciones: {}", request.profesorId, cursoGuardado.getId(), e.getMessage());
+            }
+
             int totalMateriales = 0;
             int totalEvaluaciones = 0;
 
@@ -165,7 +177,7 @@ public class CursoCreacionService {
 
             logger.info("✅ Curso creado exitosamente: {} (ID: {})", cursoGuardado.getNombre(), cursoGuardado.getId());
 
-            // PASO 8: Notificar creación del curso usando patrón Observer
+                        // PASO 8: Notificar creación del curso usando patrón Observer
             NotificationEvent event = new NotificationEvent.Builder()
                 .eventType(NotificationEvent.EventType.CURSO_CREADO)
                 .title("Nuevo curso creado")
@@ -177,9 +189,9 @@ public class CursoCreacionService {
                 .addMetadata("totalModulos", cursoCompleto.modulos.size())
                 .build();
 
-            notificacionService.notifyEvent(event);
-            logger.info("✓ Notificación enviada a observadores");
-
+            // Caso de negocio: Profesor crea Curso -> Notificar a todos los Administradores
+            notificationOrchestrator.notifyRoleObservers("admin", event);
+            logger.info("✓ Notificación de curso creado enviada a administradores");
         } catch (Exception e) {
             logger.error("❌ Error al crear curso: {}", e.getMessage(), e);
             logger.error("❌ Stack trace completo:", e);

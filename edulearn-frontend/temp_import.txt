@@ -1,0 +1,2 @@
+import { API_URL as BASE_API_URL } from '@/lib/api';
+const API_URL = \.replace('/api/api', '/api');

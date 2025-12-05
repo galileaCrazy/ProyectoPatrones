@@ -3,11 +3,15 @@ package com.edulearn.patterns.comportamiento.template_method;
 import com.edulearn.model.Curso;
 import com.edulearn.model.Estudiante;
 import com.edulearn.model.Inscripcion;
+import com.edulearn.patterns.comportamiento.observer.NotificationEvent;
+import com.edulearn.patterns.comportamiento.observer.NotificationOrchestrator;
 import com.edulearn.patterns.comportamiento.template_method.dto.ResultadoInscripcion;
 import com.edulearn.patterns.comportamiento.template_method.dto.SolicitudInscripcion;
 import com.edulearn.repository.CursoRepository;
 import com.edulearn.repository.EstudianteRepository;
 import com.edulearn.repository.InscripcionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +27,15 @@ import java.util.*;
  */
 @Service
 public class InscripcionTemplateService {
-    
+
+    private static final Logger logger = LoggerFactory.getLogger(InscripcionTemplateService.class);
+
     private final Map<String, ProcesoInscripcionTemplate> procesosInscripcion;
     private final EstudianteRepository estudianteRepository;
     private final CursoRepository cursoRepository;
     private final InscripcionRepository inscripcionRepository;
-    
+    private final NotificationOrchestrator notificationOrchestrator;
+
     @Autowired
     public InscripcionTemplateService(
             InscripcionGratuita inscripcionGratuita,
@@ -36,16 +43,18 @@ public class InscripcionTemplateService {
             InscripcionBeca inscripcionBeca,
             EstudianteRepository estudianteRepository,
             CursoRepository cursoRepository,
-            InscripcionRepository inscripcionRepository) {
-        
+            InscripcionRepository inscripcionRepository,
+            NotificationOrchestrator notificationOrchestrator) {
+
         this.procesosInscripcion = new HashMap<>();
         this.procesosInscripcion.put("GRATUITA", inscripcionGratuita);
         this.procesosInscripcion.put("PAGA", inscripcionPaga);
         this.procesosInscripcion.put("BECA", inscripcionBeca);
-        
+
         this.estudianteRepository = estudianteRepository;
         this.cursoRepository = cursoRepository;
         this.inscripcionRepository = inscripcionRepository;
+        this.notificationOrchestrator = notificationOrchestrator;
     }
     
     /**
@@ -146,6 +155,53 @@ public class InscripcionTemplateService {
             resultado.agregarDetalle("modalidad", guardada.getModalidad());
             resultado.agregarDetalle("estadoInscripcion", guardada.getEstadoInscripcion());
             resultado.agregarDetalle("certificadoGarantizado", String.valueOf(guardada.getCertificadoGarantizado()));
+
+            // 📧 ENVIAR NOTIFICACIONES según el tipo de inscripción
+            try {
+                Estudiante estudiante = estudianteOpt.get();
+                Curso curso = cursoOpt.get();
+                String estudianteNombre = estudiante.getNombre() + " " + estudiante.getApellidos();
+
+                // Si es BECA, notificar a ADMINISTRADORES
+                if ("BECA".equals(tipo.toUpperCase())) {
+                    NotificationEvent event = new NotificationEvent.Builder()
+                        .eventType(NotificationEvent.EventType.BECA_SOLICITADA)
+                        .title("Nueva Solicitud de Beca")
+                        .message(String.format("El estudiante %s ha solicitado una beca para el curso '%s' (Tipo: %s)",
+                            estudianteNombre, curso.getNombre(), guardada.getTipoBeca()))
+                        .sourceUserId(guardada.getEstudianteId())
+                        .targetId(guardada.getCursoId())
+                        .targetType("INSCRIPCION")
+                        .addMetadata("inscripcionId", guardada.getId())
+                        .addMetadata("tipoBeca", guardada.getTipoBeca())
+                        .addMetadata("codigoBeca", guardada.getCodigoBeca())
+                        .build();
+
+                    notificationOrchestrator.notifyRoleObservers("admin", event);
+                    logger.info("📧 Notificación de solicitud de beca enviada a administradores - Inscripción ID: {}", guardada.getId());
+                }
+
+                // Si es GRATUITA o inscripción activa, suscribir estudiante y notificar profesor
+                if ("Activa".equals(guardada.getEstadoInscripcion())) {
+                    // Suscribir estudiante al curso
+                    notificationOrchestrator.subscribeStudentToCourse(
+                        guardada.getEstudianteId(),
+                        estudianteNombre,
+                        guardada.getCursoId()
+                    );
+
+                    // Notificar al profesor
+                    notificationOrchestrator.notifyStudentEnrolled(
+                        guardada,
+                        estudianteNombre,
+                        curso.getNombre()
+                    );
+
+                    logger.info("📧 Estudiante suscrito al curso y profesor notificado - Inscripción ID: {}", guardada.getId());
+                }
+            } catch (Exception e) {
+                logger.error("⚠️ Error al enviar notificaciones para inscripción: {}", e.getMessage());
+            }
         }
 
         return resultado;

@@ -4,8 +4,11 @@ import com.edulearn.dto.MaterialDTO;
 import com.edulearn.dto.ModuloCursoDTO;
 import com.edulearn.model.Material;
 import com.edulearn.model.ModuloCurso;
+import com.edulearn.model.Curso;
 import com.edulearn.repository.MaterialRepository;
 import com.edulearn.repository.ModuloCursoRepository;
+import com.edulearn.repository.CursoRepository;
+import com.edulearn.patterns.comportamiento.observer.NotificationOrchestrator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +34,12 @@ public class ModuloCursoCRUDController {
 
     @Autowired
     private MaterialRepository materialRepository;
+
+    @Autowired
+    private CursoRepository cursoRepository;
+
+    @Autowired
+    private NotificationOrchestrator notificationOrchestrator;
 
     /**
      * Obtener todos los módulos de un curso con estructura jerárquica
@@ -269,6 +278,25 @@ public class ModuloCursoCRUDController {
 
             Material savedMaterial = materialRepository.save(material);
             System.out.println("  ✅ Material guardado con ID: " + savedMaterial.getId());
+
+            // 📧 ENVIAR NOTIFICACIÓN A ESTUDIANTES DEL CURSO
+            try {
+                // Obtener el curso del módulo
+                ModuloCurso modulo = moduloCursoRepository.findById(moduloId).orElse(null);
+                if (modulo != null && modulo.getCursoId() != null) {
+                    Curso curso = cursoRepository.findById(modulo.getCursoId()).orElse(null);
+                    if (curso != null) {
+                        notificationOrchestrator.notifyMaterialUploaded(
+                            savedMaterial,
+                            curso.getId(),
+                            curso.getNombre()
+                        );
+                        System.out.println("  📧 Notificación enviada a estudiantes del curso: " + curso.getNombre());
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("  ⚠️ Error al enviar notificación de material: " + e.getMessage());
+            }
         }
 
         System.out.println("✅ Todos los materiales actualizados correctamente");

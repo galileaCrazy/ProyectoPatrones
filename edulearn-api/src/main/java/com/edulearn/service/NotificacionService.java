@@ -1,9 +1,8 @@
 package com.edulearn.service;
 
 import com.edulearn.model.Notificacion;
-import com.edulearn.patterns.behavioral.observer.NotificationEvent;
-import com.edulearn.patterns.behavioral.observer.NotificationSubject;
-import com.edulearn.patterns.behavioral.observer.UserObserver;
+import com.edulearn.patterns.comportamiento.observer.NotificationEvent;
+import com.edulearn.patterns.comportamiento.observer.NotificationOrchestrator;
 import com.edulearn.repository.NotificacionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,36 +22,28 @@ public class NotificacionService {
     private NotificacionRepository repository;
 
     @Autowired
-    private NotificationSubject notificationSubject;
+    private NotificationOrchestrator notificationOrchestrator;
 
     /**
-     * PATRÓN OBSERVER - Enviar notificación interna del sistema
-     */
-    public void notifyEvent(NotificationEvent event) {
-        notificationSubject.notifyObservers(event);
-    }
-
-    /**
-     * PATRÓN OBSERVER - Registrar usuario como observador
+     * PATRÓN OBSERVER - Registrar usuario como observador (unificado)
+     * Delegado al NotificationOrchestrator para mantener una única fuente de verdad
      */
     public void registerUserObserver(Integer userId, String userName, String userRole) {
-        UserObserver observer = new UserObserver(userId, userName, userRole);
-        notificationSubject.attach(observer);
+        notificationOrchestrator.registerUser(userId, userName, userRole);
     }
 
     /**
-     * PATRÓN OBSERVER - Remover usuario como observador
+     * PATRÓN OBSERVER - Remover usuario como observador (unificado)
      */
     public void unregisterUserObserver(Integer userId, String userName, String userRole) {
-        UserObserver observer = new UserObserver(userId, userName, userRole);
-        notificationSubject.detach(observer);
+        notificationOrchestrator.unregisterUser(userId, userName, userRole);
     }
 
     /**
-     * PATRÓN OBSERVER - Notificar a un usuario específico
+     * PATRÓN OBSERVER - Notificar a un usuario específico (unificado)
      */
     public void notifySpecificUser(Integer userId, NotificationEvent event) {
-        notificationSubject.notifySpecificObserver(userId, event);
+        notificationOrchestrator.notifySpecificUser(userId, event);
     }
 
     /**

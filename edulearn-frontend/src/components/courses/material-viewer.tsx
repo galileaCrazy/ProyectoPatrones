@@ -141,18 +141,32 @@ export function MaterialViewer({ materialId, usuarioId, rolUsuario, onClose }: M
 
     switch (material.tipoMaterial?.toUpperCase()) {
       case "VIDEO":
+        // Detectar si es un embed de YouTube o Vimeo
+        const esEmbed = url.includes('youtube.com/embed') || url.includes('vimeo.com')
+
         return (
           <div className="space-y-3">
-            <h3 className="font-semibold text-lg">Reproductor de Video</h3>
-            <video
-              controls
-              className="w-full rounded-lg border border-border shadow-lg"
-              style={{ maxHeight: "500px" }}
-            >
-              <source src={url} type="video/mp4" />
-              <source src={url} type="video/webm" />
-              Tu navegador no soporta la reproducción de video.
-            </video>
+            <h3 className="font-semibold text-lg text-foreground">Reproductor de Video</h3>
+            {esEmbed ? (
+              <div className="aspect-video bg-background rounded-lg overflow-hidden border border-border">
+                <iframe
+                  src={url}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <video
+                controls
+                className="w-full rounded-lg border border-border shadow-lg bg-background"
+                style={{ maxHeight: "500px" }}
+              >
+                <source src={url} type="video/mp4" />
+                <source src={url} type="video/webm" />
+                Tu navegador no soporta la reproducción de video.
+              </video>
+            )}
             <p className="text-sm text-muted-foreground">
               Utiliza los controles del reproductor para reproducir, pausar y ajustar el volumen.
             </p>

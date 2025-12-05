@@ -72,6 +72,82 @@ export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
   // Usuario mock - En producción vendría del contexto
   const usuarioId = 1
 
+  // Estados para Patrón Memento (solo para estudiantes)
+  const [showMementoButtons, setShowMementoButtons] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [progresoData, setProgresoData] = useState<any>(null)
+  const [historialData, setHistorialData] = useState<any[]>([])
+  const [rewardsBannerKey, setRewardsBannerKey] = useState(0) // Para forzar recarga del banner
+
+  // Cargar progreso del estudiante (para Memento)
+  useEffect(() => {
+    if (role === "ESTUDIANTE") {
+      cargarProgresoEstudiante()
+    }
+  }, [courseId, usuarioId, role])
+
+  const cargarProgresoEstudiante = async () => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/progreso/${usuarioId}/${courseId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setProgresoData(data)
+
+        // Cargar historial
+        const historialResponse = await fetch(`http://localhost:8080/api/progreso/historial/${usuarioId}/${courseId}`)
+        if (historialResponse.ok) {
+          const historialData = await historialResponse.json()
+          setHistorialData(historialData)
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar progreso:', error)
+    }
+  }
+
+  const handleGuardarProgreso = async () => {
+    setGuardando(true)
+    try {
+      const response = await fetch(`http://localhost:8080/api/progreso/guardar/${usuarioId}/${courseId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ descripcion: `Checkpoint: ${new Date().toLocaleString('es-MX')}` })
+      })
+
+      if (response.ok) {
+        await cargarProgresoEstudiante()
+        alert('✅ Progreso guardado exitosamente')
+      } else {
+        alert('❌ Error al guardar el progreso')
+      }
+    } catch (error) {
+      console.error('Error al guardar progreso:', error)
+      alert('❌ Error al guardar el progreso')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const handleRestaurarProgreso = async () => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/progreso/restaurar/${usuarioId}/${courseId}`, {
+        method: 'POST'
+      })
+
+      if (response.ok) {
+        await cargarProgresoEstudiante()
+        alert('✅ Progreso restaurado exitosamente')
+        // Recargar módulos
+        await cargarModulos()
+      } else {
+        alert('❌ Error al restaurar el progreso')
+      }
+    } catch (error) {
+      console.error('Error al restaurar progreso:', error)
+      alert('❌ Error al restaurar el progreso')
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // CARGAR MÓDULOS DESDE EL BACKEND
   // ═══════════════════════════════════════════════════════════════
@@ -256,16 +332,116 @@ export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // RENDERIZADO CONDICIONAL: MaterialViewer
+  // RENDERIZADO CONDICIONAL: MaterialViewer con navegación mejorada
   // ═══════════════════════════════════════════════════════════════
   if (selectedMaterial && selectedMaterial.materialId) {
+    // Encontrar el material en el árbol de contenido para navegación
+    let todosLosMateriales: ContentItem[] = []
+    courseContent.forEach(modulo => {
+      if (modulo.content) {
+        todosLosMateriales = [...todosLosMateriales, ...modulo.content]
+      }
+    })
+
+    const indiceActual = todosLosMateriales.findIndex(m => m.materialId === selectedMaterial.materialId)
+    const materialAnterior = indiceActual > 0 ? todosLosMateriales[indiceActual - 1] : null
+    const materialSiguiente = indiceActual < todosLosMateriales.length - 1 ? todosLosMateriales[indiceActual + 1] : null
+
     return (
-      <MaterialViewer
-        materialId={selectedMaterial.materialId}
-        usuarioId={usuarioId}
-        rolUsuario={role}
-        onClose={() => setSelectedMaterial(null)}
-      />
+      <div className="space-y-4">
+        <MaterialViewer
+          materialId={selectedMaterial.materialId}
+          usuarioId={usuarioId}
+          rolUsuario={role}
+          onClose={() => setSelectedMaterial(null)}
+        />
+
+        {/* Navegación para estudiantes */}
+        {role === "ESTUDIANTE" && (
+          <Card className="border-border/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => materialAnterior && setSelectedMaterial(materialAnterior)}
+                  disabled={!materialAnterior}
+                >
+                  ← Anterior
+                </Button>
+
+                {materialSiguiente ? (
+                  <Button
+                    onClick={async () => {
+                      // Marcar material como completado en el backend
+                      try {
+                        const response = await fetch(`http://localhost:8080/api/materiales/${selectedMaterial.materialId}/completar`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            estudianteId: usuarioId,
+                            cursoId: parseInt(courseId)
+                          })
+                        })
+
+                        if (response.ok) {
+                          console.log('✅ Material completado')
+                          // Recargar progreso para actualizar badges
+                          await cargarProgresoEstudiante()
+                          // Forzar recarga del banner de recompensas
+                          setRewardsBannerKey(prev => prev + 1)
+                          // Avanzar al siguiente material
+                          setSelectedMaterial(materialSiguiente)
+                        } else {
+                          alert('Error al completar el material')
+                        }
+                      } catch (error) {
+                        console.error('Error:', error)
+                        alert('Error al completar el material')
+                      }
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Completar y Continuar →
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={async () => {
+                      // Marcar último material como completado
+                      try {
+                        const response = await fetch(`http://localhost:8080/api/materiales/${selectedMaterial.materialId}/completar`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            estudianteId: usuarioId,
+                            cursoId: parseInt(courseId)
+                          })
+                        })
+
+                        if (response.ok) {
+                          await cargarProgresoEstudiante()
+                          // Forzar recarga del banner de recompensas
+                          setRewardsBannerKey(prev => prev + 1)
+                          alert('¡Felicidades! Has completado todos los materiales')
+                          setSelectedMaterial(null)
+                        }
+                      } catch (error) {
+                        console.error('Error:', error)
+                      }
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    ¡Curso Completado! ✓
+                  </Button>
+                )}
+              </div>
+
+              <div className="mt-4 text-center text-sm text-muted-foreground">
+                Material {indiceActual + 1} de {todosLosMateriales.length}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     )
   }
 
@@ -435,7 +611,15 @@ export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
     <>
       {/* Banner de Recompensas (Gamificación y Certificación) - Solo para Estudiantes */}
       {role === "ESTUDIANTE" && (
-        <CourseRewardsBanner cursoId={courseId} estudianteId={usuarioId} />
+        <CourseRewardsBanner
+          key={rewardsBannerKey}
+          cursoId={courseId}
+          estudianteId={usuarioId}
+          onGuardarProgreso={handleGuardarProgreso}
+          onRestaurarProgreso={handleRestaurarProgreso}
+          historialCheckpoints={historialData.length}
+          guardando={guardando}
+        />
       )}
 
       <Card className="border-border/50">
@@ -592,6 +776,7 @@ export function CourseContentTree({ courseId, role }: CourseContentTreeProps) {
         onApply={handleApplyDecorators}
       />
     )}
+
   </>
   )
 }

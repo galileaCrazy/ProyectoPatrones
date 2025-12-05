@@ -1,4 +1,4 @@
-package com.edulearn.patterns.behavioral.observer;
+package com.edulearn.patterns.comportamiento.observer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

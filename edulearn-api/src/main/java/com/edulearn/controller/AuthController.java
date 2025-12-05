@@ -2,6 +2,7 @@ package com.edulearn.controller;
 
 import com.edulearn.model.Usuario;
 import com.edulearn.repository.UsuarioRepository;
+import com.edulearn.patterns.comportamiento.observer.NotificationOrchestrator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,9 @@ import java.util.*;
 public class AuthController {
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private NotificationOrchestrator notificationOrchestrator;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -45,6 +49,18 @@ public class AuthController {
         if (!passwordValid) {
             response.put("error", "Contraseña incorrecta");
             return response;
+        }
+
+        // ✅ REGISTRAR USUARIO EN SISTEMA DE NOTIFICACIONES
+        try {
+            notificationOrchestrator.registerUser(
+                usuario.getId(),
+                usuario.getNombre(),
+                usuario.getTipoUsuario()
+            );
+            System.out.println("📧 Usuario " + usuario.getNombre() + " registrado en sistema de notificaciones");
+        } catch (Exception e) {
+            System.err.println("⚠️ Error al registrar usuario en notificaciones: " + e.getMessage());
         }
 
         // Factory Method: crear respuesta según tipo de usuario

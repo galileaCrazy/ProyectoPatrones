@@ -13,8 +13,8 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:3000");  // solo tu frontend
-        // config.addAllowedOriginPattern("*"); // quita esta línea
+        config.addAllowedOrigin("http://localhost:3000");  // Acceso desde localhost
+        config.addAllowedOrigin("http://192.168.0.200:3000");  // Acceso desde red local (móvil)
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
